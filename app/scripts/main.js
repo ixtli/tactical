@@ -1,17 +1,10 @@
-import doAThing from './dummy';
-import * as THREE from '../../bower_components/three.js/build/three.module';
+import Engine from './engine';
 
 $(() =>
 {
-	console.log('Hello!');
-
-	doAThing();
-
-	let screenWidth = window.innerWidth;
-	let screenHeight = window.innerHeight;
-
-	let camera =
-		new THREE.PerspectiveCamera(70, screenWidth / screenHeight, 1, 10000);
-	console.log(camera);
+	console.log('Tactical Engine.');
+	const engine = new Engine();
+	engine.init();
+	engine.animate();
 });
 
