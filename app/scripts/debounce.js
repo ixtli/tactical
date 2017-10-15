@@ -1,3 +1,9 @@
+/**
+ *
+ * @param {function} fxn
+ * @param {number} ms
+ * @returns {function}
+ */
 export default function generateDebounce(fxn, ms)
 {
 	let timeout = null;

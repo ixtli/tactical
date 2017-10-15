@@ -1,8 +1,11 @@
-import * as THREE from '../../bower_components/three.js/build/three.module';
-import TrackballControls from './trackballcontrols';
-import Stats from './stats';
-import generateDebounce from './debounce';
-import TerrainMap from './map';
+import * as THREE from "../../bower_components/three.js/build/three.module";
+import TrackballControls from "./trackballcontrols";
+import Stats from "./stats";
+import generateDebounce from "./debounce";
+import TerrainMap from "./map";
+import TerrainMapMesh from "./mapmesh";
+
+const PICK_PIXEL_BUFFER = new Uint8Array(4);
 
 function Engine()
 {
@@ -14,34 +17,87 @@ function Engine()
 	this._renderer = null;
 	this._stats = null;
 	this._highlightBox = null;
-	this._pickingData = [];
-	this._mouse = new THREE.Vector2();
-	this._offset = new THREE.Vector3(2, 2, 2);
-	this._frameCallback = this.animate.bind(this);
-	this._resizeFunction = generateDebounce(this.onWindowResize.bind(this), 500);
 
-	this._terrain = null;
+	/**
+	 *
+	 * @type {Vector2}
+	 * @private
+	 */
+	this._mouse = new THREE.Vector2();
+
+	/**
+	 *
+	 * @type {Vector3}
+	 * @private
+	 */
+	this._offset = new THREE.Vector3(0.25, 0.25, 0.25);
+
+	/**
+	 *
+	 * @type {function(this:Engine)}
+	 * @private
+	 */
+	this._frameCallback = this.animate.bind(this);
+
+	/**
+	 *
+	 * @type {function}
+	 * @private
+	 */
+	this._resizeFunction = generateDebounce(this.onWindowResize.bind(this), 500);
+	this._pickStateDirty = true;
+
+	/**
+	 *
+	 * @type {TerrainMap}
+	 * @private
+	 */
+	this._terrain = new TerrainMap(50, 20, 50);
+
+	/**
+	 *
+	 * @type {TerrainMapMesh}
+	 * @private
+	 */
+	this._terrainMesh = new TerrainMapMesh(this._terrain);
+
+	/**
+	 *
+	 * @type {boolean}
+	 * @private
+	 */
+	this._pickStateDirty = true;
 }
 
+/**
+ *
+ * @param {MouseEvent} event
+ */
 Engine.prototype.onMouseMove = function(event)
 {
 	this._mouse.x = event.clientX;
 	this._mouse.y = event.clientY;
+	this._pickStateDirty = true;
 };
 
 Engine.prototype.init = function()
 {
-	console.log('Initializing terrain');
-	this._terrain = new TerrainMap(50, 50, 20);
-	this._terrain.regenerateGeometry();
+	console.log("Initializing terrain");
+	this._terrain.randomGround(3);
+	this._terrainMesh.regenerate();
 
-	console.log('Initializing THREE.js');
-	this._container = $('#wrapper')[0];
+	console.log("Initializing THREE.js");
+	this._container = $("#wrapper")[0];
 	this.setupCamera();
 	this.setupControls();
 	this.setupScene();
 	this.constructGeometry();
 	this.constructRenderer();
+};
+
+Engine.prototype.registerEventHandlers = function()
+{
+
 };
 
 Engine.prototype.setupCamera = function()
@@ -84,10 +140,11 @@ Engine.prototype.setupScene = function()
 
 Engine.prototype.constructGeometry = function()
 {
-	console.time('Engine::constructGeometry()');
-	console.timeStamp('Engine::constructGeometry()');
-	const pickingMaterial = new THREE.MeshBasicMaterial(
-		{vertexColors: THREE.VertexColors});
+	console.time("Engine::constructGeometry()");
+	console.timeStamp("Engine::constructGeometry()");
+	const pickingMaterial = new THREE.MeshBasicMaterial({
+		vertexColors: THREE.VertexColors
+	});
 	const defaultMaterial = new THREE.MeshPhongMaterial({
 		color: 0xffffff,
 		flatShading: true,
@@ -95,19 +152,18 @@ Engine.prototype.constructGeometry = function()
 		shininess: 0
 	});
 
-	const mapGeom = this._terrain._geometry;
-	const pickingGeom = this._terrain._pickingGeometry;
+	const mapGeom = this._terrainMesh._geometry;
+	const pickingGeom = this._terrainMesh._pickingGeometry;
 
 	const drawnObject = new THREE.Mesh(mapGeom, defaultMaterial);
 	this._scene.add(drawnObject);
 	this._pickingScene.add(new THREE.Mesh(pickingGeom, pickingMaterial));
-	this._highlightBox = new THREE.Mesh(
-		new THREE.BoxGeometry(1, 1, 1),
-		new THREE.MeshLambertMaterial({color: 0xffff00}
-	));
+	this._highlightBox = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1),
+		new THREE.MeshLambertMaterial(
+			{transparent: true, opacity: 0.5, color: 0xffff00}));
 	this._highlightBox.scale.add(this._offset);
 	this._scene.add(this._highlightBox);
-	console.timeEnd('Engine::constructGeometry()');
+	console.timeEnd("Engine::constructGeometry()");
 };
 
 Engine.prototype.constructRenderer = function()
@@ -119,10 +175,10 @@ Engine.prototype.constructRenderer = function()
 	this._container.appendChild(renderer.domElement);
 	this._stats = new Stats();
 	this._container.appendChild(this._stats.dom);
-	renderer.domElement.addEventListener('mousemove',
+	renderer.domElement.addEventListener("mousemove",
 		this.onMouseMove.bind(this));
 
-	$(window).resize(this._resizeFunction);
+	renderer.domElement.addEventListener("resize", this._resizeFunction);
 
 	this._renderer = renderer;
 };
@@ -132,19 +188,21 @@ Engine.prototype.pick = function()
 	//render the picking scene off-screen
 	this._renderer.render(this._pickingScene, this._camera, this._pickingTexture);
 	//create buffer for reading single pixel
-	let pixelBuffer = new Uint8Array(4);
 	//read the pixel under the mouse from the texture
 	this._renderer.readRenderTargetPixels(this._pickingTexture,
 		this._mouse.x, this._pickingTexture.height - this._mouse.y, 1, 1,
-		pixelBuffer);
+		PICK_PIXEL_BUFFER);
 	//interpret the pixel as an ID
-	let id = ( pixelBuffer[0] << 16 ) | ( pixelBuffer[1] << 8 ) |
-					 ( pixelBuffer[2] );
-	let position = this._terrain.vectorForIndex(id);
+	let id = ( PICK_PIXEL_BUFFER[0] << 16 ) | ( PICK_PIXEL_BUFFER[1] << 8 ) |
+					 ( PICK_PIXEL_BUFFER[2] );
+
+	// Remember to adjust +1 because 0 is no object present
+	let position = id > 0 ? this._terrain.vectorForIndex(id - 1) : false;
+
 	if (position)
 	{
-			this._highlightBox.position.copy(position);
-			this._highlightBox.visible = true;
+		this._highlightBox.position.copy(position);
+		this._highlightBox.visible = true;
 	}
 	else
 	{
@@ -156,10 +214,10 @@ Engine.prototype.onWindowResize = function()
 {
 	const width = window.innerWidth;
 	const height = window.innerHeight;
-	console.debug('Window resize', width, 'x', height);
+	console.debug("Window resize", width, "x", height);
 	this._camera.aspect = width / height;
 	this._camera.updateProjectionMatrix();
-	let dpr = this._renderer.getPixelRatio();
+	const dpr = this._renderer.getPixelRatio();
 	this._renderer.setSize(window.innerWidth * dpr, window.innerHeight * dpr);
 };
 
@@ -173,7 +231,10 @@ Engine.prototype.animate = function()
 Engine.prototype.render = function()
 {
 	this._controls.update();
-	this.pick();
+	if (this._pickStateDirty)
+	{
+		this.pick();
+	}
 	this._renderer.render(this._scene, this._camera);
 };
 
