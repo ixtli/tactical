@@ -1,5 +1,7 @@
 import * as THREE from "../../bower_components/three.js/build/three.module";
 
+import TerrainMap from "./map"; // jshint ignore:line
+
 function _applyVertColors(geom, color)
 {
 	geom.faces.forEach((f) =>
@@ -62,7 +64,6 @@ TerrainMapMesh.prototype.regenerate = function()
 	scale.y = 1;
 	scale.z = 1;
 
-	// @TODO: This should guide generation
 	const data = this._map.getData();
 
 	let generated = 0;

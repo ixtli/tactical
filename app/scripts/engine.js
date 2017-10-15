@@ -5,11 +5,26 @@ import generateDebounce from "./debounce";
 import TerrainMap from "./map";
 import TerrainMapMesh from "./mapmesh";
 
+/**
+ *
+ * @type {Uint8Array}
+ */
 const PICK_PIXEL_BUFFER = new Uint8Array(4);
 
-function Engine()
+/**
+ *
+ * @param {HTMLDivElement} container
+ * @constructor
+ */
+export default function Engine(container)
 {
-	this._container = null;
+	/**
+	 *
+	 * @type {HTMLDivElement}
+	 * @private
+	 */
+	this._container = container;
+
 	this._camera = null;
 	this._controls = null;
 	this._scene = null;
@@ -87,7 +102,6 @@ Engine.prototype.init = function()
 	this._terrainMesh.regenerate();
 
 	console.log("Initializing THREE.js");
-	this._container = $("#wrapper")[0];
 	this.setupCamera();
 	this.setupControls();
 	this.setupScene();
@@ -238,4 +252,3 @@ Engine.prototype.render = function()
 	this._renderer.render(this._scene, this._camera);
 };
 
-export default Engine;

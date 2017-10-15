@@ -1,13 +1,14 @@
 import Engine from './engine';
 
-export default function TacticalEngine()
+/***
+ *
+ * @param {Element} container
+ * @constructor
+ */
+export default function TacticalEngine(container)
 {
 	console.info('Tactical Engine.');
-	this.graphicsEngine = new Engine();
+	this.graphicsEngine = new Engine(container);
 	this.graphicsEngine.init();
 	this.graphicsEngine.animate();
 }
-
-// Bootstrap the engine in a new document.
-window.TE = new TacticalEngine();
-
