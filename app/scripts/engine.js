@@ -3,7 +3,9 @@ import TrackballControls from "./trackballcontrols";
 import Stats from "./stats";
 import generateDebounce from "./debounce";
 import TerrainMap from "./map";
-import TerrainMapMesh from "./mapmesh";
+import TerrainMapMesh, {TILE_WIDTH} from "./mapmesh";
+
+const FRUSTUM_SIZE = 1000;
 
 /**
  *
@@ -60,7 +62,13 @@ export default function Engine(container)
 	 * @private
 	 */
 	this._resizeFunction = generateDebounce(this.onWindowResize.bind(this), 500);
-	this._pickStateDirty = true;
+
+	/**
+	 *
+	 * @type {function(this:Engine)}
+	 * @private
+	 */
+	this._mouseMoveFunction = this.onMouseMove.bind(this);
 
 	/**
 	 *
@@ -68,6 +76,12 @@ export default function Engine(container)
 	 * @private
 	 */
 	this._terrain = new TerrainMap(50, 20, 50);
+
+	/**
+	 * @type {Vector3}
+	 */
+	this._sceneCenter =
+		new THREE.Vector3(25 * TILE_WIDTH, 0, 25 * TILE_WIDTH);
 
 	/**
 	 *
@@ -107,21 +121,49 @@ Engine.prototype.init = function()
 	this.setupScene();
 	this.constructGeometry();
 	this.constructRenderer();
+
+	this.registerEventHandlers();
+};
+
+Engine.prototype.destroy = function()
+{
+	this.deregisterEventHandlers();
+	this._terrainMesh.destroy();
 };
 
 Engine.prototype.registerEventHandlers = function()
 {
+	const element = this._renderer.domElement;
+	element.addEventListener("mousemove", this._mouseMoveFunction);
+	window.addEventListener("resize", this._resizeFunction);
+};
 
+Engine.prototype.deregisterEventHandlers = function()
+{
+	const element = this._renderer.domElement;
+	element.removeEventListener("mousemove", this._mouseMoveFunction);
+	window.removeEventListener("resize", this._resizeFunction);
 };
 
 Engine.prototype.setupCamera = function()
 {
-	let screenWidth = window.innerWidth;
-	let screenHeight = window.innerHeight;
-
+	const width = window.innerWidth;
+	const height = window.innerHeight;
+	const aspect = width / height;
+	const left = FRUSTUM_SIZE * aspect / -2;
+	const right = FRUSTUM_SIZE * aspect / 2;
+	const top = FRUSTUM_SIZE / 2;
+	const bottom = FRUSTUM_SIZE / -2;
+	const near = 1;
+	const far = 3000;
 	this._camera =
-		new THREE.PerspectiveCamera(70, screenWidth / screenHeight, 1, 50000);
-	this._camera.position.z = 10;
+		new THREE.OrthographicCamera(left, right, top, bottom, near, far);
+	this._camera.position.y = TILE_WIDTH * 20;
+	this._camera.lookAt(this._sceneCenter);
+};
+
+Engine.prototype.lookAt = function(x, y, z)
+{
 };
 
 Engine.prototype.setupControls = function()
@@ -172,9 +214,11 @@ Engine.prototype.constructGeometry = function()
 	const drawnObject = new THREE.Mesh(mapGeom, defaultMaterial);
 	this._scene.add(drawnObject);
 	this._pickingScene.add(new THREE.Mesh(pickingGeom, pickingMaterial));
-	this._highlightBox = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1),
-		new THREE.MeshLambertMaterial(
-			{transparent: true, opacity: 0.5, color: 0xffff00}));
+	this._highlightBox =
+		new THREE.Mesh(new THREE.BoxGeometry(32, 32, 32),
+			new THREE.MeshLambertMaterial({
+				transparent: true, opacity: 0.5, color: 0xffff00
+			}));
 	this._highlightBox.scale.add(this._offset);
 	this._scene.add(this._highlightBox);
 	console.timeEnd("Engine::constructGeometry()");
@@ -189,10 +233,6 @@ Engine.prototype.constructRenderer = function()
 	this._container.appendChild(renderer.domElement);
 	this._stats = new Stats();
 	this._container.appendChild(this._stats.dom);
-	renderer.domElement.addEventListener("mousemove",
-		this.onMouseMove.bind(this));
-
-	renderer.domElement.addEventListener("resize", this._resizeFunction);
 
 	this._renderer = renderer;
 };
@@ -204,17 +244,21 @@ Engine.prototype.pick = function()
 	//create buffer for reading single pixel
 	//read the pixel under the mouse from the texture
 	this._renderer.readRenderTargetPixels(this._pickingTexture,
-		this._mouse.x, this._pickingTexture.height - this._mouse.y, 1, 1,
+		this._mouse.x, this._pickingTexture.height - this._mouse.y,
+		1,
+		1,
 		PICK_PIXEL_BUFFER);
 	//interpret the pixel as an ID
 	let id = ( PICK_PIXEL_BUFFER[0] << 16 ) | ( PICK_PIXEL_BUFFER[1] << 8 ) |
 					 ( PICK_PIXEL_BUFFER[2] );
 
 	// Remember to adjust +1 because 0 is no object present
-	let position = id > 0 ? this._terrain.vectorForIndex(id - 1) : false;
+	const position = id > 0 ? this._terrain.vectorForIndex(id - 1) : false;
 
 	if (position)
 	{
+
+		position.multiplyScalar(32);
 		this._highlightBox.position.copy(position);
 		this._highlightBox.visible = true;
 	}
@@ -229,7 +273,11 @@ Engine.prototype.onWindowResize = function()
 	const width = window.innerWidth;
 	const height = window.innerHeight;
 	console.debug("Window resize", width, "x", height);
-	this._camera.aspect = width / height;
+	const aspect = width / height;
+	this._camera.left = FRUSTUM_SIZE * aspect / -2;
+	this._camera.right = FRUSTUM_SIZE * aspect / 2;
+	this._camera.top = FRUSTUM_SIZE / 2;
+	this._camera.bottom = FRUSTUM_SIZE / -2;
 	this._camera.updateProjectionMatrix();
 	const dpr = this._renderer.getPixelRatio();
 	this._renderer.setSize(window.innerWidth * dpr, window.innerHeight * dpr);
@@ -238,6 +286,12 @@ Engine.prototype.onWindowResize = function()
 Engine.prototype.animate = function()
 {
 	requestAnimationFrame(this._frameCallback);
+
+	var timer = Date.now() * 0.0001;
+	this._camera.position.x = Math.cos(timer) * 800;
+	this._camera.position.z = Math.sin(timer) * 800;
+	this._camera.lookAt(this._sceneCenter);
+
 	this.render();
 	this._stats.update();
 };
@@ -248,6 +302,7 @@ Engine.prototype.render = function()
 	if (this._pickStateDirty)
 	{
 		this.pick();
+		this._pickStateDirty = false;
 	}
 	this._renderer.render(this._scene, this._camera);
 };

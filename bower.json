@@ -2,7 +2,6 @@
   "name": "tactical",
   "private": true,
   "dependencies": {
-    "three.js": "threejs#*",
-    "jquery": "3.2.1"
+    "three.js": "threejs#*"
   }
 }
