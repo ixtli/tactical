@@ -19,10 +19,11 @@
 	<!-- build:css styles/main.css -->
 	<link rel="stylesheet" href="styles/main.css">
 	<!-- endbuild -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.5/dat.gui.min.js"></script>
 </head>
 <body>
 <div id="wrapper"></div>
-<script type="module">
+<script async type="module">
 	import TacticalEngine from "./scripts/main.js";
 
 	window.TE = new TacticalEngine(document.getElementById("wrapper"));

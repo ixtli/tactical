@@ -67,6 +67,11 @@ TerrainMap.prototype.randomGround = function(groundDepth)
 			offset = zOffset + y * w;
 			for (let x = 0; x < w; x++)
 			{
+				if (Math.random() < y / groundDepth)
+				{
+					continue;
+				}
+
 				newData[offset + x] = 1;
 				tileCount++;
 			}

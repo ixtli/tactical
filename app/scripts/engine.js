@@ -4,8 +4,7 @@ import Stats from "./stats";
 import generateDebounce from "./debounce";
 import TerrainMap from "./map";
 import TerrainMapMesh, {TILE_WIDTH} from "./mapmesh";
-
-const FRUSTUM_SIZE = 1000;
+import {send} from "./bus";
 
 /**
  *
@@ -15,14 +14,14 @@ const PICK_PIXEL_BUFFER = new Uint8Array(4);
 
 /**
  *
- * @param {HTMLDivElement} container
+ * @param {Element} container
  * @constructor
  */
 export default function Engine(container)
 {
 	/**
 	 *
-	 * @type {HTMLDivElement}
+	 * @type {Element}
 	 * @private
 	 */
 	this._container = container;
@@ -33,21 +32,13 @@ export default function Engine(container)
 	this._pickingScene = null;
 	this._renderer = null;
 	this._stats = null;
-	this._highlightBox = null;
 
 	/**
 	 *
 	 * @type {Vector2}
 	 * @private
 	 */
-	this._mouse = new THREE.Vector2();
-
-	/**
-	 *
-	 * @type {Vector3}
-	 * @private
-	 */
-	this._offset = new THREE.Vector3(0.25, 0.25, 0.25);
+	this._nextPickCoordinates = new THREE.Vector2();
 
 	/**
 	 *
@@ -65,13 +56,6 @@ export default function Engine(container)
 
 	/**
 	 *
-	 * @type {function(this:Engine)}
-	 * @private
-	 */
-	this._mouseMoveFunction = this.onMouseMove.bind(this);
-
-	/**
-	 *
 	 * @type {TerrainMap}
 	 * @private
 	 */
@@ -80,8 +64,7 @@ export default function Engine(container)
 	/**
 	 * @type {Vector3}
 	 */
-	this._sceneCenter =
-		new THREE.Vector3(25 * TILE_WIDTH, 0, 25 * TILE_WIDTH);
+	this._sceneCenter = new THREE.Vector3(25 * TILE_WIDTH, 0, 25 * TILE_WIDTH);
 
 	/**
 	 *
@@ -96,74 +79,156 @@ export default function Engine(container)
 	 * @private
 	 */
 	this._pickStateDirty = true;
-}
 
-/**
- *
- * @param {MouseEvent} event
- */
-Engine.prototype.onMouseMove = function(event)
-{
-	this._mouse.x = event.clientX;
-	this._mouse.y = event.clientY;
-	this._pickStateDirty = true;
-};
+	/**
+	 *
+	 * @type {number}
+	 * @private
+	 */
+	this._zoom = 4;
+
+	/**
+	 *
+	 * @type {Vector3}
+	 * @private
+	 */
+	this._cameraLERPOrigin = new THREE.Vector3();
+
+	/**
+	 *
+	 * @type {Vector3}
+	 * @private
+	 */
+	this._cameraLERPTarget = new THREE.Vector3();
+
+	/**
+	 *
+	 * @type {number}
+	 * @private
+	 */
+	this._cameraLERPStart = -1;
+
+	/**
+	 *
+	 * @type {number}
+	 * @private
+	 */
+	this._cameraLERPEnd = -1;
+
+	/**
+	 *
+	 * @type {null|Vector3}
+	 * @private
+	 */
+	this._lastPick = null;
+}
 
 Engine.prototype.init = function()
 {
-	console.log("Initializing terrain");
-	this._terrain.randomGround(3);
+	console.log("Initializing graphics engine.");
+
+	this._terrain.randomGround(7);
 	this._terrainMesh.regenerate();
 
-	console.log("Initializing THREE.js");
 	this.setupCamera();
-	this.setupControls();
+	//this.setupControls();
 	this.setupScene();
 	this.constructGeometry();
 	this.constructRenderer();
+	//this.constructGUI();
 
 	this.registerEventHandlers();
 };
 
 Engine.prototype.destroy = function()
 {
-	this.deregisterEventHandlers();
+	this.deRegisterEventHandlers();
 	this._terrainMesh.destroy();
 };
 
 Engine.prototype.registerEventHandlers = function()
 {
-	const element = this._renderer.domElement;
-	element.addEventListener("mousemove", this._mouseMoveFunction);
 	window.addEventListener("resize", this._resizeFunction);
 };
 
-Engine.prototype.deregisterEventHandlers = function()
+Engine.prototype.deRegisterEventHandlers = function()
 {
-	const element = this._renderer.domElement;
-	element.removeEventListener("mousemove", this._mouseMoveFunction);
 	window.removeEventListener("resize", this._resizeFunction);
+};
+
+/**
+ *
+ * @returns {Element}
+ */
+Engine.prototype.getContainer = function()
+{
+	return this._container;
+};
+
+/**
+ *
+ * @param {number} x
+ * @param {number} y
+ */
+Engine.prototype.pickAtCoordinates = function(x, y)
+{
+	this._nextPickCoordinates.x = x;
+	this._nextPickCoordinates.y = y;
+	this._pickStateDirty = true;
+};
+
+Engine.prototype.getSceneWidth = function()
+{
+	return this._terrain.width() * TILE_WIDTH + 50;
+};
+
+Engine.prototype.getSceneHeight = function()
+{
+	return this._terrain.height() * TILE_WIDTH + 50;
 };
 
 Engine.prototype.setupCamera = function()
 {
-	const width = window.innerWidth;
-	const height = window.innerHeight;
-	const aspect = width / height;
-	const left = FRUSTUM_SIZE * aspect / -2;
-	const right = FRUSTUM_SIZE * aspect / 2;
-	const top = FRUSTUM_SIZE / 2;
-	const bottom = FRUSTUM_SIZE / -2;
-	const near = 1;
-	const far = 3000;
-	this._camera =
-		new THREE.OrthographicCamera(left, right, top, bottom, near, far);
-	this._camera.position.y = TILE_WIDTH * 20;
+	const near = 0.1;
+	const far = 500;
+	this._camera = new THREE.OrthographicCamera(0, 0, 0, 0, near, far);
+	this.updateCameraFrustum();
+	this._camera.position.y = 25;
+
 	this._camera.lookAt(this._sceneCenter);
 };
 
-Engine.prototype.lookAt = function(x, y, z)
+Engine.prototype.updateCameraFrustum = function()
 {
+	const aspect = window.innerWidth / window.innerHeight;
+	const cam = this._camera;
+	const value = this._zoom;
+	const frustumSize = Math.max(this.getSceneWidth(), this.getSceneHeight());
+	cam.left = frustumSize * aspect / -value;
+	cam.right = frustumSize * aspect / value;
+	cam.top = frustumSize / value;
+	cam.bottom = frustumSize / -value;
+	cam.updateProjectionMatrix();
+};
+
+Engine.prototype.constructGUI = function()
+{
+	const cam = this._camera;
+	const pos = cam.position;
+	const sc = this._sceneCenter;
+	const gui = new dat.GUI({resizable: false});
+	const redoMVPM = () =>
+	{
+		cam.lookAt(sc);
+		cam.updateProjectionMatrix();
+	};
+	gui.add(pos, "y", -100, 100).onChange(redoMVPM);
+	gui.add(pos, "x", -100, 100).onChange(redoMVPM);
+	gui.add(pos, "z", -100, 100).onChange(redoMVPM);
+	gui.add(this, "_zoom", 0, 32)
+		.onChange(this.updateCameraFrustum.bind(this));
+	gui.add(cam, "near", 0.1, 25).onChange(redoMVPM);
+	gui.add(cam, "far", 500, 5000).onChange(redoMVPM);
 };
 
 Engine.prototype.setupControls = function()
@@ -186,6 +251,7 @@ Engine.prototype.setupScene = function()
 	this._pickingScene = new THREE.Scene();
 	this._pickingTexture =
 		new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+	this._pickingTexture.stencilBuffer = false;
 	this._pickingTexture.texture.minFilter = THREE.LinearFilter;
 
 	this._scene.add(new THREE.AmbientLight(0x555555));
@@ -199,7 +265,10 @@ Engine.prototype.constructGeometry = function()
 	console.time("Engine::constructGeometry()");
 	console.timeStamp("Engine::constructGeometry()");
 	const pickingMaterial = new THREE.MeshBasicMaterial({
-		vertexColors: THREE.VertexColors
+		vertexColors: THREE.VertexColors,
+		blending: THREE.NoBlending,
+		fog: false,
+		lights: false
 	});
 	const defaultMaterial = new THREE.MeshPhongMaterial({
 		color: 0xffffff,
@@ -214,14 +283,25 @@ Engine.prototype.constructGeometry = function()
 	const drawnObject = new THREE.Mesh(mapGeom, defaultMaterial);
 	this._scene.add(drawnObject);
 	this._pickingScene.add(new THREE.Mesh(pickingGeom, pickingMaterial));
-	this._highlightBox =
-		new THREE.Mesh(new THREE.BoxGeometry(32, 32, 32),
-			new THREE.MeshLambertMaterial({
-				transparent: true, opacity: 0.5, color: 0xffff00
-			}));
-	this._highlightBox.scale.add(this._offset);
-	this._scene.add(this._highlightBox);
 	console.timeEnd("Engine::constructGeometry()");
+};
+
+/**
+ *
+ * @param {Mesh} obj
+ */
+Engine.prototype.addObjectToScene = function(obj)
+{
+	this._scene.add(obj);
+};
+
+/**
+ *
+ * @param {Mesh} obj
+ */
+Engine.prototype.removeObjectFromScene = function(obj)
+{
+	this._scene.remove(obj);
 };
 
 Engine.prototype.constructRenderer = function()
@@ -243,11 +323,15 @@ Engine.prototype.pick = function()
 	this._renderer.render(this._pickingScene, this._camera, this._pickingTexture);
 	//create buffer for reading single pixel
 	//read the pixel under the mouse from the texture
+
 	this._renderer.readRenderTargetPixels(this._pickingTexture,
-		this._mouse.x, this._pickingTexture.height - this._mouse.y,
+		this._nextPickCoordinates.x, this._pickingTexture.height -
+																 this._nextPickCoordinates.y,
 		1,
 		1,
 		PICK_PIXEL_BUFFER);
+
+	this._pickStateDirty = false;
 	//interpret the pixel as an ID
 	let id = ( PICK_PIXEL_BUFFER[0] << 16 ) | ( PICK_PIXEL_BUFFER[1] << 8 ) |
 					 ( PICK_PIXEL_BUFFER[2] );
@@ -255,17 +339,8 @@ Engine.prototype.pick = function()
 	// Remember to adjust +1 because 0 is no object present
 	const position = id > 0 ? this._terrain.vectorForIndex(id - 1) : false;
 
-	if (position)
-	{
-
-		position.multiplyScalar(32);
-		this._highlightBox.position.copy(position);
-		this._highlightBox.visible = true;
-	}
-	else
-	{
-		this._highlightBox.visible = false;
-	}
+	this._lastPick = position;
+	send("engine.pick", position);
 };
 
 Engine.prototype.onWindowResize = function()
@@ -273,24 +348,77 @@ Engine.prototype.onWindowResize = function()
 	const width = window.innerWidth;
 	const height = window.innerHeight;
 	console.debug("Window resize", width, "x", height);
-	const aspect = width / height;
-	this._camera.left = FRUSTUM_SIZE * aspect / -2;
-	this._camera.right = FRUSTUM_SIZE * aspect / 2;
-	this._camera.top = FRUSTUM_SIZE / 2;
-	this._camera.bottom = FRUSTUM_SIZE / -2;
-	this._camera.updateProjectionMatrix();
+	this.updateCameraFrustum();
 	const dpr = this._renderer.getPixelRatio();
-	this._renderer.setSize(window.innerWidth * dpr, window.innerHeight * dpr);
+	this._renderer.setSize(width * dpr, height * dpr);
+	this._pickingTexture.setSize(width * dpr, height * dpr);
 };
 
-Engine.prototype.animate = function()
+/**
+ *
+ * @param {Vector3} target
+ * @param {number} ms
+ */
+Engine.prototype.LERPCameraNow = function(target, ms)
+{
+	this._cameraLERPOrigin = this._camera.position.clone();
+	this._cameraLERPStart = performance.now();
+	this._cameraLERPEnd = ms + this._cameraLERPStart;
+
+	// noinspection JSUnresolvedFunction
+	const t = target.clone();
+
+	t.y = 25 + t.y;
+	t.x = t.x - (TILE_WIDTH * this._terrain.width() / 2);
+	t.z = t.z - (TILE_WIDTH * this._terrain.depth() / 2);
+
+	this._cameraLERPTarget = t;
+};
+
+/**
+ *
+ * @param {Vector3} target
+ */
+Engine.prototype.jumpCameraNow = function(target)
+{
+	const p = this._camera.position;
+	p.y = 25 + target.y;
+	p.x = target.x - (TILE_WIDTH * this._terrain.width() / 2);
+	p.z = target.z - (TILE_WIDTH * this._terrain.depth() / 2);
+};
+
+/**
+ *
+ * @param {number} timestamp
+ */
+Engine.prototype.animate = function(timestamp)
 {
 	requestAnimationFrame(this._frameCallback);
 
-	var timer = Date.now() * 0.0001;
-	this._camera.position.x = Math.cos(timer) * 800;
-	this._camera.position.z = Math.sin(timer) * 800;
-	this._camera.lookAt(this._sceneCenter);
+	/**
+	 const timer = Date.now() * 0.0001;
+	 this._camera.position.x = Math.cos(timer) * 100;
+	 this._camera.position.z = Math.sin(timer) * 100;
+	 this._camera.lookAt(this._sceneCenter);
+	 */
+	if (this._cameraLERPStart > 0)
+	{
+		let len = this._cameraLERPEnd - timestamp;
+		if (len < 1)
+		{
+			this._camera.position.copy(this._cameraLERPTarget);
+			this._cameraLERPStart = -1;
+			this._cameraLERPEnd = -1;
+		}
+		else
+		{
+			let dist = this._cameraLERPEnd - this._cameraLERPStart;
+			let total = len / dist;
+			this._camera.position.lerpVectors(this._cameraLERPTarget,
+				this._cameraLERPOrigin,
+				total);
+		}
+	}
 
 	this.render();
 	this._stats.update();
@@ -298,11 +426,11 @@ Engine.prototype.animate = function()
 
 Engine.prototype.render = function()
 {
-	this._controls.update();
+	//this._controls.update();
+
 	if (this._pickStateDirty)
 	{
 		this.pick();
-		this._pickStateDirty = false;
 	}
 	this._renderer.render(this._scene, this._camera);
 };
