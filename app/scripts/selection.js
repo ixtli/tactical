@@ -140,7 +140,7 @@ SelectionManager.prototype._engineHasPicked = function(vec)
 			this._selectionBox.visible = true;
 			this._selection = vec;
 			this.selectTile(vec);
-			this._engine.LERPCameraNow(vec, 250);
+			this._engine.lookAt(vec, 250);
 		}
 		else
 		{
@@ -174,7 +174,7 @@ SelectionManager.prototype.selectTile = function(vec)
 	 position.y = 25 + position.y;
 	 position.x = position.x - (TILE_WIDTH * this._terrain.width() / 2);
 	 position.z = position.z - (TILE_WIDTH * this._terrain.depth() / 2);
-	 this._engine.LERPCameraNow(position, 500);
+	 this._engine.panCamera(position, 500);
 	 */
 };
 
@@ -199,8 +199,10 @@ SelectionManager.prototype._gotKey = function(key)
 	switch (key)
 	{
 		case "q":
+			this._engine.orbit(500, false);
 			break;
 		case "e":
+			this._engine.orbit(500, true);
 			break;
 		case "w":
 			this._selection.z++;
@@ -227,12 +229,14 @@ SelectionManager.prototype._gotKey = function(key)
 			updateSelection = true;
 			break;
 		default:
-			break;
+			return false;
 	}
 
 	if (updateSelection)
 	{
 		this.selectTile(this._selection);
-		this._engine.jumpCameraNow(this._selection);
+		this._engine.lookAt(this._selection, 250);
 	}
+
+	return true;
 };

@@ -5,6 +5,7 @@ import generateDebounce from "./debounce";
 import TerrainMap from "./map";
 import TerrainMapMesh, {TILE_WIDTH} from "./mapmesh";
 import {send} from "./bus";
+import TWEEN from "./Tween";
 
 /**
  *
@@ -59,12 +60,7 @@ export default function Engine(container)
 	 * @type {TerrainMap}
 	 * @private
 	 */
-	this._terrain = new TerrainMap(50, 20, 50);
-
-	/**
-	 * @type {Vector3}
-	 */
-	this._sceneCenter = new THREE.Vector3(25 * TILE_WIDTH, 0, 25 * TILE_WIDTH);
+	this._terrain = new TerrainMap(30, 10, 30);
 
 	/**
 	 *
@@ -89,38 +85,73 @@ export default function Engine(container)
 
 	/**
 	 *
-	 * @type {Vector3}
-	 * @private
-	 */
-	this._cameraLERPOrigin = new THREE.Vector3();
-
-	/**
-	 *
-	 * @type {Vector3}
-	 * @private
-	 */
-	this._cameraLERPTarget = new THREE.Vector3();
-
-	/**
-	 *
-	 * @type {number}
-	 * @private
-	 */
-	this._cameraLERPStart = -1;
-
-	/**
-	 *
-	 * @type {number}
-	 * @private
-	 */
-	this._cameraLERPEnd = -1;
-
-	/**
-	 *
 	 * @type {null|Vector3}
 	 * @private
 	 */
 	this._lastPick = null;
+
+	/**
+	 *
+	 * @type {number}
+	 * @private
+	 */
+	this._aspectRatio = window.innerWidth / window.innerHeight;
+
+	/**
+	 *
+	 * @type {number}
+	 * @private
+	 */
+	this._horizontalBackoff = 500;
+
+	/**
+	 *
+	 * @type {number}
+	 * @private
+	 */
+	this._verticalBackoff = 250;
+
+	/**
+	 *
+	 * @type {number}
+	 * @private
+	 */
+	this._orbitStepSize = 360 / 4;
+
+	/**
+	 *
+	 * @type {number}
+	 * @private
+	 */
+	this._cameraOrbitDegrees = 45;
+
+	/**
+	 *
+	 * @type {number}
+	 * @private
+	 */
+	this._orbitTarget = this._cameraOrbitDegrees;
+
+	/**
+	 *
+	 * @type {Vector3}
+	 * @private
+	 */
+	this._lookingAt = new THREE.Vector3();
+
+	/**
+	 *
+	 * @type {null|TWEEN.Tween}
+	 * @private
+	 */
+	this._orbitTween = null;
+
+	/**
+	 *
+	 * @type {null|TWEEN.Tween}
+	 * @private
+	 */
+	this._panTween = null;
 }
 
 Engine.prototype.init = function()
@@ -135,7 +166,7 @@ Engine.prototype.init = function()
 	this.setupScene();
 	this.constructGeometry();
 	this.constructRenderer();
-	//this.constructGUI();
+	this.constructGUI();
 
 	this.registerEventHandlers();
 };
@@ -190,17 +221,15 @@ Engine.prototype.getSceneHeight = function()
 Engine.prototype.setupCamera = function()
 {
 	const near = 0.1;
-	const far = 500;
+	const far = 5000;
 	this._camera = new THREE.OrthographicCamera(0, 0, 0, 0, near, far);
 	this.updateCameraFrustum();
-	this._camera.position.y = 25;
-
-	this._camera.lookAt(this._sceneCenter);
+	this.lookAt(this._lookingAt, 0);
 };
 
 Engine.prototype.updateCameraFrustum = function()
 {
-	const aspect = window.innerWidth / window.innerHeight;
+	const aspect = this._aspectRatio;
 	const cam = this._camera;
 	const value = this._zoom;
 	const frustumSize = Math.max(this.getSceneWidth(), this.getSceneHeight());
@@ -213,22 +242,20 @@ Engine.prototype.updateCameraFrustum = function()
 
 Engine.prototype.constructGUI = function()
 {
-	const cam = this._camera;
-	const pos = cam.position;
-	const sc = this._sceneCenter;
 	const gui = new dat.GUI({resizable: false});
-	const redoMVPM = () =>
+	const self = this;
+	gui.add(self, "_horizontalBackoff", 1, 500).onChange(() =>
 	{
-		cam.lookAt(sc);
-		cam.updateProjectionMatrix();
-	};
-	gui.add(pos, "y", -100, 100).onChange(redoMVPM);
-	gui.add(pos, "x", -100, 100).onChange(redoMVPM);
-	gui.add(pos, "z", -100, 100).onChange(redoMVPM);
+		const target = new THREE.Vector3(0, 0, 0);
+		self.lookAt(target);
+	});
+	gui.add(self, "_verticalBackoff", 1, 500).onChange(() =>
+	{
+		const target = new THREE.Vector3(0, 0, 0);
+		self.lookAt(target);
+	});
 	gui.add(this, "_zoom", 0, 32)
 		.onChange(this.updateCameraFrustum.bind(this));
-	gui.add(cam, "near", 0.1, 25).onChange(redoMVPM);
-	gui.add(cam, "far", 500, 5000).onChange(redoMVPM);
 };
 
 Engine.prototype.setupControls = function()
@@ -279,6 +306,18 @@ Engine.prototype.constructGeometry = function()
 
 	const mapGeom = this._terrainMesh._geometry;
 	const pickingGeom = this._terrainMesh._pickingGeometry;
+
+	const gridHelper = new THREE.GridHelper(100, 100, "red", "gray");
+	gridHelper.position.x = 0.5;
+	gridHelper.position.y = -0.5;
+	gridHelper.position.z = 0.5;
+	this._scene.add(gridHelper);
+
+	const axisHelper = new THREE.AxisHelper(5);
+	this._scene.add(axisHelper);
+
+	const cameraHelper = new THREE.CameraHelper(this._camera);
+	this._scene.add(cameraHelper);
 
 	const drawnObject = new THREE.Mesh(mapGeom, defaultMaterial);
 	this._scene.add(drawnObject);
@@ -347,6 +386,7 @@ Engine.prototype.onWindowResize = function()
 {
 	const width = window.innerWidth;
 	const height = window.innerHeight;
+	this._aspectRatio = width / height;
 	console.debug("Window resize", width, "x", height);
 	this.updateCameraFrustum();
 	const dpr = this._renderer.getPixelRatio();
@@ -354,37 +394,92 @@ Engine.prototype.onWindowResize = function()
 	this._pickingTexture.setSize(width * dpr, height * dpr);
 };
 
-/**
- *
- * @param {Vector3} target
- * @param {number} ms
- */
-Engine.prototype.LERPCameraNow = function(target, ms)
+Engine.prototype.getCameraPosition = function(target)
 {
-	this._cameraLERPOrigin = this._camera.position.clone();
-	this._cameraLERPStart = performance.now();
-	this._cameraLERPEnd = ms + this._cameraLERPStart;
-
-	// noinspection JSUnresolvedFunction
-	const t = target.clone();
-
-	t.y = 25 + t.y;
-	t.x = t.x - (TILE_WIDTH * this._terrain.width() / 2);
-	t.z = t.z - (TILE_WIDTH * this._terrain.depth() / 2);
-
-	this._cameraLERPTarget = t;
+	const pos = new THREE.Vector3();
+	const bk = this._horizontalBackoff * TILE_WIDTH;
+	const degs = this._cameraOrbitDegrees;
+	pos.x = target.x - (bk * Math.cos(THREE.Math.degToRad(degs)));
+	pos.z = target.z - (bk * Math.sin(THREE.Math.degToRad(degs)));
+	pos.y = target.y + this._verticalBackoff * TILE_WIDTH;
+	return pos;
 };
 
 /**
  *
  * @param {Vector3} target
+ * @param {number} ms
  */
-Engine.prototype.jumpCameraNow = function(target)
+Engine.prototype.lookAt = function(target, ms)
 {
-	const p = this._camera.position;
-	p.y = 25 + target.y;
-	p.x = target.x - (TILE_WIDTH * this._terrain.width() / 2);
-	p.z = target.z - (TILE_WIDTH * this._terrain.depth() / 2);
+	const pos = this.getCameraPosition(target);
+
+	if (this._lookingAt !== target)
+	{
+		this._lookingAt.set(target.x, target.y, target.z);
+		send("engine.camera.move", this._lookingAt);
+	}
+
+	if (this._panTween)
+	{
+		this._panTween.stop();
+		this._panTween = null;
+	}
+
+	if (ms < 1)
+	{
+		this._camera.position.set(pos.x, pos.y, pos.z);
+		this._camera.lookAt(target);
+	}
+	else
+	{
+		send("engine.camera.pan.begin", ms);
+		this._panTween = new TWEEN.Tween(this._camera.position).to(pos)
+			.easing(TWEEN.Easing.Quintic.Out)
+			.onComplete(send.bind(send, "engine.camera.pan.end"))
+			.start();
+	}
+};
+
+/**
+ *
+ * @param {number} ms
+ * @param {boolean} reverse
+ */
+Engine.prototype.orbit = function(ms, reverse)
+{
+	this._orbitTarget += (reverse ? -1 : 1) * this._orbitStepSize;
+	const ot = this._orbitTarget;
+
+	if (this._orbitTween)
+	{
+		this._orbitTween.stop();
+	}
+
+	const self = this;
+	send("engine.camera.orbit.begin", ot);
+	this._orbitTween = new TWEEN.Tween(this).to({_cameraOrbitDegrees: ot}, ms)
+		.onUpdate(() =>
+		{
+			self.lookAt(self._lookingAt, 0);
+		})
+		.onComplete(() =>
+		{
+			self._orbitTarget = self._orbitTarget % 360;
+			self._cameraOrbitDegrees = self._orbitTarget;
+			send("engine.camera.orbit.end", self._orbitTarget);
+		})
+		.easing(TWEEN.Easing.Quintic.Out)
+		.start();
+};
+
+/**
+ *
+ * @returns {null|Vector3}
+ */
+Engine.prototype.getLastPick = function()
+{
+	return this._lastPick.clone();
 };
 
 /**
@@ -394,32 +489,7 @@ Engine.prototype.jumpCameraNow = function(target)
 Engine.prototype.animate = function(timestamp)
 {
 	requestAnimationFrame(this._frameCallback);
-
-	/**
-	 const timer = Date.now() * 0.0001;
-	 this._camera.position.x = Math.cos(timer) * 100;
-	 this._camera.position.z = Math.sin(timer) * 100;
-	 this._camera.lookAt(this._sceneCenter);
-	 */
-	if (this._cameraLERPStart > 0)
-	{
-		let len = this._cameraLERPEnd - timestamp;
-		if (len < 1)
-		{
-			this._camera.position.copy(this._cameraLERPTarget);
-			this._cameraLERPStart = -1;
-			this._cameraLERPEnd = -1;
-		}
-		else
-		{
-			let dist = this._cameraLERPEnd - this._cameraLERPStart;
-			let total = len / dist;
-			this._camera.position.lerpVectors(this._cameraLERPTarget,
-				this._cameraLERPOrigin,
-				total);
-		}
-	}
-
+	TWEEN.update(timestamp);
 	this.render();
 	this._stats.update();
 };
@@ -434,4 +504,3 @@ Engine.prototype.render = function()
 	}
 	this._renderer.render(this._scene, this._camera);
 };
-

@@ -8,6 +8,7 @@ const registry = {};
  *
  * @param {string|number} name
  * @param {*} message
+ * @returns {Array.<*>}
  */
 export function send(name, message)
 {
@@ -19,10 +20,13 @@ export function send(name, message)
 	}
 
 	const count = list.length;
+	const responses = new Array(count);
 	for (let i = 0; i < count; i++)
 	{
-		list[i](message);
+		responses[i] = list[i](message);
 	}
+
+	return responses;
 }
 
 /**
