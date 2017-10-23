@@ -78,6 +78,20 @@ export default function SelectionManager(graphicsEngine)
 
 	/**
 	 *
+	 * @type {function(this:SelectionManager)}
+	 * @private
+	 */
+	this._keyUpCallback = this._keyUp.bind(this);
+
+	/**
+	 *
+	 * @type {function(this:SelectionManager)}
+	 * @private
+	 */
+	this._keyDownCallback = this._keyDown.bind(this);
+
+	/**
+	 *
 	 * @type {boolean}
 	 * @private
 	 */
@@ -103,6 +117,8 @@ SelectionManager.prototype.init = function()
 	subscribe("engine.pick", this._enginePickCallback);
 	subscribe("input.click", this._clickCallback);
 	subscribe("input.keypress", this._keyPressCallback);
+	subscribe("input.keyup", this._keyUpCallback);
+	subscribe("input.keydown", this._keyDownCallback);
 };
 
 SelectionManager.prototype.destroy = function()
@@ -110,6 +126,8 @@ SelectionManager.prototype.destroy = function()
 	unsubscribe("engine.pick", this._enginePickCallback);
 	unsubscribe("input.click", this._clickCallback);
 	unsubscribe("input.keypress", this._keyPressCallback);
+	unsubscribe("input.keyup", this._keyUpCallback);
+	unsubscribe("input.keydown", this._keyDownCallback);
 
 	this._engine.removeObjectFromScene(this._selectionBox);
 	this._engine.removeObjectFromScene(this._highlightBox);
@@ -190,13 +208,13 @@ SelectionManager.prototype.highlightTile = function(vec)
 
 /**
  *
- * @param {string} key
+ * @param {KeyboardEvent} event
  * @private
  */
-SelectionManager.prototype._gotKey = function(key)
+SelectionManager.prototype._gotKey = function(event)
 {
 	let updateSelection = false;
-	switch (key)
+	switch (event.key)
 	{
 		case "q":
 			this._engine.orbit(500, false);
@@ -229,7 +247,7 @@ SelectionManager.prototype._gotKey = function(key)
 			updateSelection = true;
 			break;
 		default:
-			return false;
+			return;
 	}
 
 	if (updateSelection)
@@ -238,5 +256,23 @@ SelectionManager.prototype._gotKey = function(key)
 		this._engine.lookAt(this._selection, 250);
 	}
 
-	return true;
+	event.preventDefault();
+};
+
+/**
+ *
+ * @param {KeyboardEvent} event
+ */
+SelectionManager.prototype._keyUp = function(event)
+{
+
+};
+
+/**
+ *
+ * @param {KeyboardEvent} event
+ */
+SelectionManager.prototype._keyDown = function(event)
+{
+
 };

@@ -95,10 +95,10 @@ InputController.prototype.registerEventHandlers = function()
 {
 	this._container.addEventListener("mousemove", this._mouseMoveFunction);
 	this._container.addEventListener("mousedown", this._mouseDownFunction);
-	this._container.addEventListener("keydown", this._keyDownFunction);
 	this._container.addEventListener("mouseup", this._mouseUpFunction);
-	this._container.addEventListener("keyup", this._keyUpFunction);
 	this._container.addEventListener("click", this._onClickFunction);
+	window.addEventListener("keyup", this._keyUpFunction);
+	window.addEventListener("keydown", this._keyDownFunction);
 	window.addEventListener("keypress", this._keyPressFunction);
 };
 
@@ -107,9 +107,9 @@ InputController.prototype.deRegisterEventHandlers = function()
 	this._container.removeEventListener("mousemove", this._mouseMoveFunction);
 	this._container.removeEventListener("click", this._onClickFunction);
 	this._container.removeEventListener("mousedown", this._mouseDownFunction);
-	this._container.removeEventListener("keydown", this._keyDownFunction);
 	this._container.removeEventListener("mouseup", this._mouseUpFunction);
-	this._container.removeEventListener("keyup", this._keyUpFunction);
+	window.removeEventListener("keyup", this._keyUpFunction);
+	window.removeEventListener("keydown", this._keyDownFunction);
 	window.removeEventListener("keypress", this._keyPressFunction);
 };
 
@@ -157,28 +157,24 @@ InputController.prototype.onMouseMove = function(event)
 InputController.prototype.onKeyPress = function(event)
 {
 	// For now we want to respect clicks when navigating with keyboard
-	const responses = send("input.keypress", event.key);
-	const len = responses.length;
-
-	for (let i = 0; i < len; i++)
-	{
-		if (responses[i] === true)
-		{
-			event.preventDefault();
-			return true;
-		}
-	}
-
-	return false;
+	send("input.keypress", event);
 };
 
+/**
+ *
+ * @param {KeyboardEvent} event
+ */
 InputController.prototype.onKeyDown = function(event)
 {
-	console.log(event);
+	send("input.keydown", event);
 };
 
+/**
+ *
+ * @param {KeyboardEvent} event
+ */
 InputController.prototype.onKeyUp = function(event)
 {
-	console.log(event);
+	send("input.keyup", event);
 };
 

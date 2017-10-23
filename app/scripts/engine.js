@@ -1,5 +1,4 @@
 import * as THREE from "../../bower_components/three.js/build/three.module";
-import TrackballControls from "./trackballcontrols";
 import Stats from "./stats";
 import generateDebounce from "./debounce";
 import TerrainMap from "./map";
@@ -28,7 +27,6 @@ export default function Engine(container)
 	this._container = container;
 
 	this._camera = null;
-	this._controls = null;
 	this._scene = null;
 	this._pickingScene = null;
 	this._renderer = null;
@@ -119,14 +117,14 @@ export default function Engine(container)
 	this._orbitStepSize = 360 / 4;
 
 	/**
-	 *
+	 * This is the current degrees orbited around the current tile the camera is
 	 * @type {number}
 	 * @private
 	 */
 	this._cameraOrbitDegrees = 45;
 
 	/**
-	 *
+	 * When the camera is moving, this is the orbit it will eventually end up at
 	 * @type {number}
 	 * @private
 	 */
@@ -247,28 +245,15 @@ Engine.prototype.constructGUI = function()
 	gui.add(self, "_horizontalBackoff", 1, 500).onChange(() =>
 	{
 		const target = new THREE.Vector3(0, 0, 0);
-		self.lookAt(target);
+		self.lookAt(target, 0);
 	});
 	gui.add(self, "_verticalBackoff", 1, 500).onChange(() =>
 	{
 		const target = new THREE.Vector3(0, 0, 0);
-		self.lookAt(target);
+		self.lookAt(target, 0);
 	});
 	gui.add(this, "_zoom", 0, 32)
 		.onChange(this.updateCameraFrustum.bind(this));
-};
-
-Engine.prototype.setupControls = function()
-{
-	const controls = new TrackballControls(this._camera);
-	controls.rotateSpeed = 1.0;
-	controls.zoomSpeed = 1.2;
-	controls.panSpeed = 0.8;
-	controls.noZoom = false;
-	controls.noPan = false;
-	controls.staticMoving = true;
-	controls.dynamicDampingFactor = 0.3;
-	this._controls = controls;
 };
 
 Engine.prototype.setupScene = function()
