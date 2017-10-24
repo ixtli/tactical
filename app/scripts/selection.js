@@ -74,6 +74,13 @@ export default function SelectionManager(graphicsEngine)
 	 * @type {function(this:SelectionManager)}
 	 * @private
 	 */
+	this._mouseDownCallback = this._mouseDown.bind(this);
+
+	/**
+	 *
+	 * @type {function(this:SelectionManager)}
+	 * @private
+	 */
 	this._keyPressCallback = this._gotKey.bind(this);
 
 	/**
@@ -92,10 +99,73 @@ export default function SelectionManager(graphicsEngine)
 
 	/**
 	 *
+	 * @type {function(this:SelectionManager)}
+	 * @private
+	 */
+	this._dragCallback = this._onDrag.bind(this);
+
+	/**
+	 *
+	 * @type {function(this:SelectionManager)}
+	 * @private
+	 */
+	this._wheelCallback = this._onWheel.bind(this);
+
+	/**
+	 *
 	 * @type {boolean}
 	 * @private
 	 */
 	this._nextPickSelects = false;
+
+	/**
+	 *
+	 * @type {boolean}
+	 * @private
+	 */
+	this._shiftDown = false;
+
+	/**
+	 *
+	 * @type {boolean}
+	 * @private
+	 */
+	this._altDown = false;
+
+	/**
+	 *
+	 * @type {boolean}
+	 * @private
+	 */
+	this._controlDown = false;
+
+	/**
+	 *
+	 * @type {boolean}
+	 * @private
+	 */
+	this._metaDown = false;
+
+	/**
+	 *
+	 * @type {Vector2}
+	 * @private
+	 */
+	this._mouseDownLocation = new THREE.Vector2();
+
+	/**
+	 *
+	 * @type {Vector2}
+	 * @private
+	 */
+	this._previousDragLocation = new THREE.Vector2();
+
+	/**
+	 *
+	 * @type {number}
+	 * @private
+	 */
+	this._dragScrollDampingFactor = 10;
 }
 
 SelectionManager.prototype.init = function()
@@ -116,9 +186,12 @@ SelectionManager.prototype.init = function()
 
 	subscribe("engine.pick", this._enginePickCallback);
 	subscribe("input.click", this._clickCallback);
+	subscribe("input.mousedown", this._mouseDownCallback);
 	subscribe("input.keypress", this._keyPressCallback);
 	subscribe("input.keyup", this._keyUpCallback);
 	subscribe("input.keydown", this._keyDownCallback);
+	subscribe("input.drag", this._dragCallback);
+	subscribe("input.wheel", this._wheelCallback);
 };
 
 SelectionManager.prototype.destroy = function()
@@ -128,12 +201,61 @@ SelectionManager.prototype.destroy = function()
 	unsubscribe("input.keypress", this._keyPressCallback);
 	unsubscribe("input.keyup", this._keyUpCallback);
 	unsubscribe("input.keydown", this._keyDownCallback);
+	unsubscribe("input.drag", this._dragCallback);
+	unsubscribe("input.wheel", this._wheelCallback);
 
 	this._engine.removeObjectFromScene(this._selectionBox);
 	this._engine.removeObjectFromScene(this._highlightBox);
 };
 
 /**
+ *
+ * @param {number} deltaY
+ * @private
+ */
+SelectionManager.prototype._onWheel = function(deltaY)
+{
+	if (deltaY > 0)
+	{
+		this._engine.zoom(2, 250);
+	} else {
+		this._engine.zoom(-2, 250);
+	}
+};
+
+/**
+ *
+ * @param {{x: number, y: number}} evt
+ * @private
+ */
+SelectionManager.prototype._onDrag = function(evt)
+{
+	if (this._metaDown)
+	{
+		// Scroll relative to the distance between the last drag update and now
+		let delta = new THREE.Vector3();
+		const df = this._dragScrollDampingFactor;
+		delta.x = (evt.x - this._previousDragLocation.x) / df;
+		delta.z = (evt.y - this._previousDragLocation.y) / df;
+		this._engine.panCameraRelative(delta);
+		this._previousDragLocation.set(evt.x, evt.y);
+	}
+};
+
+/**
+ *
+ * @param {{x: number, y: number}} evt
+ * @private
+ */
+SelectionManager.prototype._mouseDown = function(evt)
+{
+	this._mouseDownLocation.set(evt.x, evt.y);
+	this._previousDragLocation.set(evt.x, evt.y);
+};
+
+/**
+ *
+ /**
  *
  * @param {{x: number, y: number}} evt
  * @private
@@ -186,14 +308,6 @@ SelectionManager.prototype.selectTile = function(vec)
 {
 	this._selectionBox.position.copy(vec);
 	this._selectionBox.position.multiplyScalar(TILE_WIDTH);
-
-	/**
-	 position.add(this._highlightBoxCenter);
-	 position.y = 25 + position.y;
-	 position.x = position.x - (TILE_WIDTH * this._terrain.width() / 2);
-	 position.z = position.z - (TILE_WIDTH * this._terrain.depth() / 2);
-	 this._engine.panCamera(position, 500);
-	 */
 };
 
 /**
@@ -265,7 +379,23 @@ SelectionManager.prototype._gotKey = function(event)
  */
 SelectionManager.prototype._keyUp = function(event)
 {
-
+	switch (event.key)
+	{
+		case "Meta":
+			this._metaDown = false;
+			break;
+		case "Control":
+			this._controlDown = false;
+			break;
+		case "Alt":
+			this._altDown = false;
+			break;
+		case "Shift":
+			this._shiftDown = false;
+			break;
+		default:
+			return;
+	}
 };
 
 /**
@@ -274,5 +404,21 @@ SelectionManager.prototype._keyUp = function(event)
  */
 SelectionManager.prototype._keyDown = function(event)
 {
-
+	switch (event.key)
+	{
+		case "Meta":
+			this._metaDown = true;
+			break;
+		case "Control":
+			this._controlDown = true;
+			break;
+		case "Alt":
+			this._altDown = true;
+			break;
+		case "Shift":
+			this._shiftDown = true;
+			break;
+		default:
+			return;
+	}
 };

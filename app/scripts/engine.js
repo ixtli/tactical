@@ -58,7 +58,7 @@ export default function Engine(container)
 	 * @type {TerrainMap}
 	 * @private
 	 */
-	this._terrain = new TerrainMap(30, 10, 30);
+	this._terrain = new TerrainMap(50, 5, 50);
 
 	/**
 	 *
@@ -73,13 +73,6 @@ export default function Engine(container)
 	 * @private
 	 */
 	this._pickStateDirty = true;
-
-	/**
-	 *
-	 * @type {number}
-	 * @private
-	 */
-	this._zoom = 4;
 
 	/**
 	 *
@@ -129,6 +122,34 @@ export default function Engine(container)
 	 * @private
 	 */
 	this._orbitTarget = this._cameraOrbitDegrees;
+
+	/**
+	 *
+	 * @type {number}
+	 * @private
+	 */
+	this._zoomStepSize = 2;
+
+	/**
+	 *
+	 * @type {number}
+	 * @private
+	 */
+	this._zoom = 4;
+
+	/**
+	 *
+	 * @type {number}
+	 * @private
+	 */
+	this._zoomTarget = this._zoom;
+
+	/**
+	 *
+	 * @type {null|TWEEN.Tween}
+	 * @private
+	 */
+	this._zoomTween = null;
 
 	/**
 	 *
@@ -241,17 +262,6 @@ Engine.prototype.updateCameraFrustum = function()
 Engine.prototype.constructGUI = function()
 {
 	const gui = new dat.GUI({resizable: false});
-	const self = this;
-	gui.add(self, "_horizontalBackoff", 1, 500).onChange(() =>
-	{
-		const target = new THREE.Vector3(0, 0, 0);
-		self.lookAt(target, 0);
-	});
-	gui.add(self, "_verticalBackoff", 1, 500).onChange(() =>
-	{
-		const target = new THREE.Vector3(0, 0, 0);
-		self.lookAt(target, 0);
-	});
 	gui.add(this, "_zoom", 0, 32)
 		.onChange(this.updateCameraFrustum.bind(this));
 };
@@ -293,16 +303,13 @@ Engine.prototype.constructGeometry = function()
 	const pickingGeom = this._terrainMesh._pickingGeometry;
 
 	const gridHelper = new THREE.GridHelper(100, 100, "red", "gray");
-	gridHelper.position.x = 0.5;
+	gridHelper.position.x = -0.5;
 	gridHelper.position.y = -0.5;
-	gridHelper.position.z = 0.5;
+	gridHelper.position.z = -0.5;
 	this._scene.add(gridHelper);
 
 	const axisHelper = new THREE.AxisHelper(5);
 	this._scene.add(axisHelper);
-
-	const cameraHelper = new THREE.CameraHelper(this._camera);
-	this._scene.add(cameraHelper);
 
 	const drawnObject = new THREE.Mesh(mapGeom, defaultMaterial);
 	this._scene.add(drawnObject);
@@ -388,6 +395,56 @@ Engine.prototype.getCameraPosition = function(target)
 	pos.z = target.z - (bk * Math.sin(THREE.Math.degToRad(degs)));
 	pos.y = target.y + this._verticalBackoff * TILE_WIDTH;
 	return pos;
+};
+
+/**
+ *
+ * @param {number} newFactor
+ * @param {number} ms
+ */
+Engine.prototype.zoom = function(newFactor, ms)
+{
+	let target = this._zoomTarget + newFactor;
+
+	if (target < 2 || target > 32)
+	{
+		return;
+	}
+
+	if (this._zoomTween)
+	{
+		this._zoomTween.stop();
+		this._zoomTween = null;
+	}
+
+	if (ms < 1)
+	{
+		this._zoom = target;
+		this._zoomTarget = target;
+		this.updateCameraFrustum();
+	}
+	else
+	{
+		this._zoomTarget = target;
+		this._zoomTween = new TWEEN.Tween(this).to({_zoom: this._zoomTarget}, ms)
+			.onUpdate(this.updateCameraFrustum.bind(this))
+			.start();
+	}
+};
+
+/**
+ *
+ * @param {Vector3} delta
+ */
+Engine.prototype.panCameraRelative = function(delta)
+{
+	if (this._panTween)
+	{
+		this._panTween.stop();
+		this._panTween = null;
+	}
+
+	this._camera.position.add(delta);
 };
 
 /**
