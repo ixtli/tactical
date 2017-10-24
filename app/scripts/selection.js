@@ -166,6 +166,13 @@ export default function SelectionManager(graphicsEngine)
 	 * @private
 	 */
 	this._dragScrollDampingFactor = 10;
+
+	/**
+	 *
+	 * @type {number}
+	 * @private
+	 */
+	this._zoomStepSize = 2;
 }
 
 SelectionManager.prototype.init = function()
@@ -217,9 +224,9 @@ SelectionManager.prototype._onWheel = function(deltaY)
 {
 	if (deltaY > 0)
 	{
-		this._engine.zoom(2, 250);
+		this._engine.zoom(this._zoomStepSize, 250);
 	} else {
-		this._engine.zoom(-2, 250);
+		this._engine.zoom(-this._zoomStepSize, 250);
 	}
 };
 

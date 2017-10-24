@@ -58,7 +58,7 @@ export default function Engine(container)
 	 * @type {TerrainMap}
 	 * @private
 	 */
-	this._terrain = new TerrainMap(50, 5, 50);
+	this._terrain = new TerrainMap(100, 2, 100);
 
 	/**
 	 *
@@ -128,13 +128,6 @@ export default function Engine(container)
 	 * @type {number}
 	 * @private
 	 */
-	this._zoomStepSize = 2;
-
-	/**
-	 *
-	 * @type {number}
-	 * @private
-	 */
 	this._zoom = 4;
 
 	/**
@@ -181,11 +174,10 @@ Engine.prototype.init = function()
 	this._terrainMesh.regenerate();
 
 	this.setupCamera();
-	//this.setupControls();
 	this.setupScene();
 	this.constructGeometry();
 	this.constructRenderer();
-	this.constructGUI();
+	//this.constructGUI();
 
 	this.registerEventHandlers();
 };
@@ -269,7 +261,7 @@ Engine.prototype.constructGUI = function()
 Engine.prototype.setupScene = function()
 {
 	this._scene = new THREE.Scene();
-	this._scene.background = new THREE.Color(0xffffff);
+	this.setBackgroundColor(new THREE.Color(0x8BFFF7));
 	this._pickingScene = new THREE.Scene();
 	this._pickingTexture =
 		new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
@@ -280,6 +272,18 @@ Engine.prototype.setupScene = function()
 	const light = new THREE.SpotLight(0xffffff, 1.5);
 	light.position.set(0, 500, 2000);
 	this._scene.add(light);
+};
+
+Engine.prototype.addHelpers = function()
+{
+	const gridHelper = new THREE.GridHelper(100, 100, "red", "gray");
+	gridHelper.position.x = -0.5;
+	gridHelper.position.y = -0.5;
+	gridHelper.position.z = -0.5;
+	this._scene.add(gridHelper);
+
+	const axisHelper = new THREE.AxisHelper(5);
+	this._scene.add(axisHelper);
 };
 
 Engine.prototype.constructGeometry = function()
@@ -301,15 +305,6 @@ Engine.prototype.constructGeometry = function()
 
 	const mapGeom = this._terrainMesh._geometry;
 	const pickingGeom = this._terrainMesh._pickingGeometry;
-
-	const gridHelper = new THREE.GridHelper(100, 100, "red", "gray");
-	gridHelper.position.x = -0.5;
-	gridHelper.position.y = -0.5;
-	gridHelper.position.z = -0.5;
-	this._scene.add(gridHelper);
-
-	const axisHelper = new THREE.AxisHelper(5);
-	this._scene.add(axisHelper);
 
 	const drawnObject = new THREE.Mesh(mapGeom, defaultMaterial);
 	this._scene.add(drawnObject);
@@ -417,6 +412,8 @@ Engine.prototype.zoom = function(newFactor, ms)
 		this._zoomTween = null;
 	}
 
+	send("engine.zoom", this._zoomTarget);
+
 	if (ms < 1)
 	{
 		this._zoom = target;
@@ -517,15 +514,6 @@ Engine.prototype.orbit = function(ms, reverse)
 
 /**
  *
- * @returns {null|Vector3}
- */
-Engine.prototype.getLastPick = function()
-{
-	return this._lastPick.clone();
-};
-
-/**
- *
  * @param {number} timestamp
  */
 Engine.prototype.animate = function(timestamp)
@@ -538,11 +526,18 @@ Engine.prototype.animate = function(timestamp)
 
 Engine.prototype.render = function()
 {
-	//this._controls.update();
-
 	if (this._pickStateDirty)
 	{
 		this.pick();
 	}
 	this._renderer.render(this._scene, this._camera);
+};
+
+/**
+ *
+ * @param {Color} newColor
+ */
+Engine.prototype.setBackgroundColor = function(newColor)
+{
+	this._scene.background = newColor;
 };

@@ -9,3 +9,16 @@ body {
 	overflow: hidden;
 }
 
+#hud-container
+{
+	position: absolute;
+	bottom: 0;
+	left: 0;
+}
+
+#hud-container > h1
+{
+	color: white;
+	margin-left: 10px;
+	-webkit-text-stroke: 2px black;
+}
