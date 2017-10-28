@@ -1,7 +1,7 @@
 import * as THREE from "../../bower_components/three.js/build/three.module";
 import Engine from "./engine";
 import {TILE_WIDTH} from "./mapmesh";
-import {subscribe, unsubscribe} from "./bus";
+import {emit, subscribe, unsubscribe} from "./bus";
 
 /**
  *
@@ -271,6 +271,7 @@ SelectionManager.prototype.selectTile = function(vec)
 {
 	this._selectionBox.position.copy(vec);
 	this._selectionBox.position.multiplyScalar(TILE_WIDTH);
+	emit("selection.tile", [vec]);
 };
 
 /**

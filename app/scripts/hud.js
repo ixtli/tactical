@@ -1,6 +1,5 @@
-import {subscribe, unsubscribe} from "./bus";
-import ZoomWidget from "./widgets/zoom_widget";
-import PositionWidget from "./widgets/position_widget";
+import ScalarEventWidget from "./widgets/scalar_event_widget";
+import PositionWidget from "./widgets/vec3_event_widget";
 
 /**
  *
@@ -28,8 +27,9 @@ export default function HUD(container)
 
 HUD.prototype.init = function()
 {
-	this._widgets.push(new ZoomWidget());
-	this._widgets.push(new PositionWidget());
+	this._widgets.push(new ScalarEventWidget("zoom", "engine.camera.zoom"));
+	this._widgets.push(new PositionWidget("mouse", "engine.pick"));
+	this._widgets.push(new PositionWidget("selection", "selection.tile"));
 
 	const layer = this._layer;
 

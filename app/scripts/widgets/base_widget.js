@@ -1,3 +1,7 @@
+/**
+ *
+ * @constructor
+ */
 export default function WidgetBase()
 {
 	/**
