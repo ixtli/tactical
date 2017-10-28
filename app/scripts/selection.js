@@ -1,5 +1,5 @@
 import * as THREE from "../../bower_components/three.js/build/three.module";
-import Engine from "./engine";
+import Engine, {EAST, NORTH, SOUTH, WEST} from "./engine"; // jshint ignore:line
 import {TILE_WIDTH} from "./mapmesh";
 import {emit, subscribe, unsubscribe} from "./bus";
 
@@ -117,6 +117,13 @@ export default function SelectionManager(graphicsEngine)
 	 * @private
 	 */
 	this._zoomStepSize = 2;
+
+	/**
+	 *
+	 * @type {Vector3}
+	 * @private
+	 */
+	this._facingModifiers = new THREE.Vector3(1,1,1);
 }
 
 SelectionManager.prototype.init = function()
@@ -148,6 +155,7 @@ SelectionManager.prototype.destroy = function()
 SelectionManager.prototype._subscribe = function()
 {
 	subscribe("engine.pick", this, this._engineHasPicked);
+	subscribe("engine.camera.facing", this, this._facingChange);
 	subscribe("input.click", this, this._userClicked);
 	subscribe("input.mousedown", this, this._mouseDown);
 	subscribe("input.keypress", this, this._keyPress);
@@ -160,6 +168,7 @@ SelectionManager.prototype._subscribe = function()
 SelectionManager.prototype._unsubscribe = function()
 {
 	unsubscribe("engine.pick", this, this._engineHasPicked);
+	unsubscribe("engine.camera.facing", this, this._facingChange);
 	unsubscribe("input.click", this, this._userClicked);
 	unsubscribe("input.mousedown", this, this._mouseDown);
 	unsubscribe("input.keypress", this, this._keyPress);
@@ -167,6 +176,26 @@ SelectionManager.prototype._unsubscribe = function()
 	unsubscribe("input.keydown", this, this._keyDown);
 	unsubscribe("input.drag", this, this._onDrag);
 	unsubscribe("input.wheel", this, this._onWheel);
+};
+
+SelectionManager.prototype._facingChange = function(newDirection)
+{
+	this._facingModifiers.set(1,1,1);
+	switch (newDirection)
+	{
+		case NORTH:
+			this._facingModifiers.z = -1;
+			break;
+		case EAST:
+			break;
+		case WEST:
+			this._facingModifiers.z = -1;
+			this._facingModifiers.x = -1;
+			break;
+		case SOUTH:
+			this._facingModifiers.x = -1;
+			break;
+	}
 };
 
 /**
@@ -188,20 +217,24 @@ SelectionManager.prototype._onWheel = function(deltaY)
 
 /**
  *
- * @param {{x: number, y: number}} evt
+ * @param {number} x
+ * @param {number} y
  * @private
  */
-SelectionManager.prototype._onDrag = function(evt)
+SelectionManager.prototype._onDrag = function(x, y)
 {
 	if (this._metaDown)
 	{
 		// Scroll relative to the distance between the last drag update and now
 		let delta = new THREE.Vector3();
 		const df = this._dragScrollDampingFactor;
-		delta.x = (evt.x - this._previousDragLocation.x) / df;
-		delta.z = (evt.y - this._previousDragLocation.y) / df;
+		const dx = (x - this._previousDragLocation.x) / df;
+		const fc = this._facingModifiers;
+		delta.x = dx * fc.x;
+		delta.z = dx * fc.z;
+		delta.y = fc.y * (y - this._previousDragLocation.y) / df;
 		this._engine.panCameraRelative(delta);
-		this._previousDragLocation.set(evt.x, evt.y);
+		this._previousDragLocation.set(x, y);
 	}
 };
 

@@ -13,6 +13,11 @@ export default function Vec3EventWidget(event, name)
 
 Vec3EventWidget.prototype = Object.create(ScalarEventWidget.prototype);
 
+/**
+ *
+ * @param {null|THREE.Vector3} vec
+ * @private
+ */
 Vec3EventWidget.prototype._valueChanged = function(vec)
 {
 	if (!vec)

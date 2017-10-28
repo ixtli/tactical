@@ -1,5 +1,6 @@
 import ScalarEventWidget from "./widgets/scalar_event_widget";
 import PositionWidget from "./widgets/vec3_event_widget";
+import WidgetBase from "./widgets/base_widget"; // jshint ignore:line
 
 /**
  *
@@ -22,6 +23,11 @@ export default function HUD(container)
 	 */
 	this._layer = document.createElement("div");
 
+	/**
+	 *
+	 * @type {Array.<WidgetBase>}
+	 * @private
+	 */
 	this._widgets = [];
 }
 
@@ -30,6 +36,8 @@ HUD.prototype.init = function()
 	this._widgets.push(new ScalarEventWidget("zoom", "engine.camera.zoom"));
 	this._widgets.push(new PositionWidget("mouse", "engine.pick"));
 	this._widgets.push(new PositionWidget("selection", "selection.tile"));
+	this._widgets.push(new ScalarEventWidget("orbit", "engine.camera.orbit"));
+	this._widgets.push(new ScalarEventWidget("facing", "engine.camera.facing"));
 
 	const layer = this._layer;
 

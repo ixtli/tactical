@@ -12,6 +12,11 @@ import {emit, emitb} from "./bus";
  */
 const PICK_PIXEL_BUFFER = new Uint8Array(4);
 
+export const NORTH = Symbol("north");
+export const SOUTH = Symbol("south");
+export const EAST = Symbol("east");
+export const WEST = Symbol("west");
+
 /**
  *
  * @param {Element} container
@@ -171,6 +176,13 @@ export default function Engine(container)
 	 * @private
 	 */
 	this._broadcastNextPick = false;
+
+	/**
+	 *
+	 * @type {Symbol}
+	 * @private
+	 */
+	this._cameraFacingDirection = NORTH;
 }
 
 Engine.prototype.init = function()
@@ -529,8 +541,17 @@ Engine.prototype.orbit = function(ms, reverse)
 		this._orbitTween.stop();
 	}
 
+	if (ms < 1)
+	{
+		this._orbitTarget = ot % 360;
+		this._cameraOrbitDegrees = this._orbitTarget;
+		this._updateCameraFacingDirection();
+		emit("engine.camera.orbit", [this._cameraOrbitDegrees]);
+		return;
+	}
+
 	const self = this;
-	emit("engine.camera.orbit.begin", [ot]);
+	emit("engine.camera.orbit.begin", [ms]);
 	this._orbitTween = new TWEEN.Tween(this).to({_cameraOrbitDegrees: ot}, ms)
 		.onUpdate(() =>
 		{
@@ -539,8 +560,16 @@ Engine.prototype.orbit = function(ms, reverse)
 		.onComplete(() =>
 		{
 			self._orbitTarget = self._orbitTarget % 360;
+
+			if (self._orbitTarget < 0)
+			{
+				self._orbitTarget = 360 + self._orbitTarget;
+			}
+
 			self._cameraOrbitDegrees = self._orbitTarget;
-			emit("engine.camera.orbit.end", [self._orbitTarget]);
+			this._updateCameraFacingDirection();
+			emit("engine.camera.orbit.end", [ms]);
+			emit("engine.camera.orbit", [self._cameraOrbitDegrees]);
 		})
 		.easing(TWEEN.Easing.Quintic.Out)
 		.start();
@@ -574,4 +603,49 @@ Engine.prototype.render = function()
 Engine.prototype.setBackgroundColor = function(newColor)
 {
 	this._scene.background = newColor;
+};
+
+Engine.prototype.getCameraOrbitDegrees = function()
+{
+	return this._cameraOrbitDegrees;
+};
+
+Engine.prototype._updateCameraFacingDirection = function()
+{
+	let old = this._cameraOrbitDegrees;
+	switch (Math.floor(this._cameraOrbitDegrees / 45))
+	{
+		case 0:
+		case 1:
+			this._cameraFacingDirection = NORTH;
+			break;
+		case 2:
+		case 3:
+			this._cameraFacingDirection = EAST;
+			break;
+		case 4:
+		case 5:
+			this._cameraFacingDirection = SOUTH;
+			break;
+		case 6:
+		case 7:
+			this._cameraFacingDirection = WEST;
+			break;
+		default:
+			throw new Error("No cardinal direction for " + this._cameraOrbitDegrees);
+	}
+
+	if (old !== this._cameraFacingDirection)
+	{
+		emit("engine.camera.facing", [this._cameraFacingDirection]);
+	}
+};
+
+/**
+ *
+ * @returns {Symbol}
+ */
+Engine.prototype.getCameraCardinalDirection = function()
+{
+	return this._cameraFacingDirection;
 };

@@ -1,3 +1,5 @@
+import * as THREE from "../../bower_components/three.js/build/three.module";
+
 /**
  *
  * @param {number} w
@@ -5,8 +7,6 @@
  * @param {number} d
  * @constructor
  */
-import * as THREE from "../../bower_components/three.js/build/three.module";
-
 export default function TerrainMap(w, h, d)
 {
 	console.assert(w > 0, "Map width must be positive.");
