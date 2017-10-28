@@ -1,10 +1,10 @@
+import {subscribe, unsubscribe} from "./bus";
+
 /**
  *
  * @param {Element} container
  * @constructor
  */
-import {subscribe, unsubscribe} from "./bus";
-
 export default function HUD(container)
 {
 	/**
@@ -52,7 +52,12 @@ HUD.prototype.destroy = function()
 	this._layer.remove();
 };
 
+/**
+ *
+ * @param {number} newZoom
+ * @private
+ */
 HUD.prototype._zoomChanged = function(newZoom)
 {
-	this._zoomWidget.innerHTML = newZoom;
+	this._zoomWidget.innerHTML = String(newZoom);
 };

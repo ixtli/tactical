@@ -132,9 +132,21 @@ SelectionManager.prototype.init = function()
 		}));
 	this._selectionBox.scale.add(this._offset);
 
+	this._subscribe();
 	this._engine.addObjectToScene(this._selectionBox);
 	this._engine.addObjectToScene(this._highlightBox);
 
+};
+
+SelectionManager.prototype.destroy = function()
+{
+	this._unsubscribe();
+	this._engine.removeObjectFromScene(this._selectionBox);
+	this._engine.removeObjectFromScene(this._highlightBox);
+};
+
+SelectionManager.prototype._subscribe = function()
+{
 	subscribe("engine.pick", this, this._engineHasPicked);
 	subscribe("input.click", this, this._userClicked);
 	subscribe("input.mousedown", this, this._mouseDown);
@@ -145,7 +157,7 @@ SelectionManager.prototype.init = function()
 	subscribe("input.wheel", this, this._onWheel);
 };
 
-SelectionManager.prototype.destroy = function()
+SelectionManager.prototype._unsubscribe = function()
 {
 	unsubscribe("engine.pick", this, this._engineHasPicked);
 	unsubscribe("input.click", this, this._userClicked);
@@ -155,9 +167,6 @@ SelectionManager.prototype.destroy = function()
 	unsubscribe("input.keydown", this, this._keyDown);
 	unsubscribe("input.drag", this, this._onDrag);
 	unsubscribe("input.wheel", this, this._onWheel);
-
-	this._engine.removeObjectFromScene(this._selectionBox);
-	this._engine.removeObjectFromScene(this._highlightBox);
 };
 
 /**
@@ -170,7 +179,9 @@ SelectionManager.prototype._onWheel = function(deltaY)
 	if (deltaY > 0)
 	{
 		this._engine.zoom(this._zoomStepSize, 250);
-	} else {
+	}
+	else
+	{
 		this._engine.zoom(-this._zoomStepSize, 250);
 	}
 };
@@ -215,6 +226,7 @@ SelectionManager.prototype._mouseDown = function(x, y)
 SelectionManager.prototype._userClicked = function(x, y)
 {
 	this._nextPickSelects = true;
+	this._engine.pickAtCoordinates(x, y, true);
 };
 
 /**
@@ -226,7 +238,6 @@ SelectionManager.prototype._engineHasPicked = function(vec)
 {
 	if (this._nextPickSelects)
 	{
-
 		if (vec)
 		{
 			this._selectionBox.visible = true;

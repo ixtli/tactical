@@ -5,6 +5,8 @@
  * @param {number} d
  * @constructor
  */
+import * as THREE from "../../bower_components/three.js/build/three.module";
+
 export default function TerrainMap(w, h, d)
 {
 	console.assert(w > 0, "Map width must be positive.");
@@ -78,6 +80,28 @@ TerrainMap.prototype.randomGround = function(groundDepth)
 	console.timeEnd("TerrainMap::randomGround()");
 	console.debug("Generated map with", tileCount, "tiles.");
 	this._data = newData;
+};
+
+/**
+ *
+ * @param {number} id
+ * @returns {Vector3}
+ */
+TerrainMap.prototype.tileForID = function(id)
+{
+	if (id > this._data.length || !this._data[id])
+	{
+		console.error("Could not find tile", id);
+		return null;
+	}
+
+	const w = this._width;
+	const tilesInPlane = w * this._height;
+	const subIndex = id % tilesInPlane;
+	const z = Math.floor(id / tilesInPlane);
+	const x = subIndex % w;
+	const y = Math.floor(subIndex / w);
+	return new THREE.Vector3(x, y, z);
 };
 
 /**

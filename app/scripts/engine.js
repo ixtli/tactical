@@ -164,6 +164,13 @@ export default function Engine(container)
 	 * @private
 	 */
 	this._panTween = null;
+
+	/**
+	 *
+	 * @type {boolean}
+	 * @private
+	 */
+	this._broadcastNextPick = false;
 }
 
 Engine.prototype.init = function()
@@ -210,12 +217,14 @@ Engine.prototype.getContainer = function()
  *
  * @param {number} x
  * @param {number} y
+ * @param {boolean?} force
  */
-Engine.prototype.pickAtCoordinates = function(x, y)
+Engine.prototype.pickAtCoordinates = function(x, y, force)
 {
 	this._nextPickCoordinates.x = x;
 	this._nextPickCoordinates.y = y;
 	this._pickStateDirty = true;
+	this._broadcastNextPick = this._broadcastNextPick || force;
 };
 
 Engine.prototype.getSceneWidth = function()
@@ -342,8 +351,6 @@ Engine.prototype.constructRenderer = function()
 	this._renderer = renderer;
 };
 
-const PICK_VECTOR = new THREE.Vector3();
-
 Engine.prototype.pick = function()
 {
 	//render the picking scene off-screen
@@ -363,40 +370,34 @@ Engine.prototype.pick = function()
 	let id = ( PICK_PIXEL_BUFFER[0] << 16 ) | ( PICK_PIXEL_BUFFER[1] << 8 ) |
 					 ( PICK_PIXEL_BUFFER[2] );
 
+	if (this._broadcastNextPick)
+	{
+		this._broadcastNextPick = false;
+		this._lastPick = id > 0 ? this._terrain.tileForID(id - 1) : null;
+		emit("engine.pick", [this._lastPick]);
+		return;
+	}
+
 	let lp = this._lastPick;
 
 	if (!id)
 	{
 		if (lp)
 		{
-			emit("engine.pick", [false]);
+			emit("engine.pick", [null]);
 			this._lastPick = null;
 		}
 		return;
 	}
 
-	id--;
+	const picked = this._terrain.tileForID(id - 1);
 
-	if (id > this._terrain._data.length || !this._terrain._data[id])
-	{
-		console.error("Could not find tile", id);
-		return null;
-	}
-
-	let w = this._terrain.width();
-	let tilesInPlane = w * this._terrain.height();
-	let z = Math.floor(id / tilesInPlane);
-	let subIndex = id % tilesInPlane;
-	let x = subIndex % w;
-	let y = Math.floor(subIndex / w);
-	PICK_VECTOR.set(x, y, z);
-
-	if (lp && PICK_VECTOR.equals(lp))
+	if (lp && picked.equals(lp))
 	{
 		return;
 	}
 
-	this._lastPick = PICK_VECTOR.clone();
+	this._lastPick = picked;
 	emit("engine.pick", [this._lastPick]);
 };
 
@@ -443,7 +444,7 @@ Engine.prototype.zoom = function(newFactor, ms)
 		this._zoomTween = null;
 	}
 
-	emit("engine.camera.zoom", [this._zoomTarget]);
+	emit("engine.camera.zoom", [target]);
 
 	if (ms < 1)
 	{
