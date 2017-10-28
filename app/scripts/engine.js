@@ -454,8 +454,10 @@ Engine.prototype.zoom = function(newFactor, ms)
 	else
 	{
 		this._zoomTarget = target;
+		emit("engine.camera.zoom.begin", [ms]);
 		this._zoomTween = new TWEEN.Tween(this).to({_zoom: this._zoomTarget}, ms)
 			.onUpdate(this.updateCameraFrustum.bind(this))
+			.onComplete(emitb("engine.camera.zoom.end", [ms]))
 			.start();
 	}
 };

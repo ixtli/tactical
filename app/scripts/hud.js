@@ -3,6 +3,8 @@
  * @param {Element} container
  * @constructor
  */
+import {subscribe, unsubscribe} from "./bus";
+
 export default function HUD(container)
 {
 	/**
@@ -40,14 +42,17 @@ HUD.prototype.init = function()
 
 	layer.appendChild(v);
 	this._container.appendChild(this._layer);
+
+	subscribe("engine.camera.zoom", this, this._zoomChanged);
 };
 
 HUD.prototype.destroy = function()
 {
+	unsubscribe("engine.camera.zoom", this, this._zoomChanged);
 	this._layer.remove();
 };
 
 HUD.prototype._zoomChanged = function(newZoom)
 {
-
+	this._zoomWidget.innerHTML = newZoom;
 };

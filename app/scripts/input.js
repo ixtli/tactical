@@ -72,6 +72,11 @@ export default function InputController(engine)
 	 */
 	this._keyPressFunction = this.onKeyPress.bind(this);
 
+	/**
+	 *
+	 * @type {function(this:InputController)}
+	 * @private
+	 */
 	this._wheelFunction = this.onWheel.bind(this);
 
 	/**
