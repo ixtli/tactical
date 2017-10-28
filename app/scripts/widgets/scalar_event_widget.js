@@ -5,9 +5,10 @@ import WidgetBase from "./base_widget";
  *
  * @param {string} name
  * @param {string} event
+ * @param {Function?} customFxn
  * @constructor
  */
-export default function ScalarEventWidget(name, event)
+export default function ScalarEventWidget(name, event, customFxn)
 {
 	WidgetBase.call(this);
 
@@ -31,6 +32,13 @@ export default function ScalarEventWidget(name, event)
 	 * @protected
 	 */
 	this._display = document.createElement("h1");
+
+	/**
+	 *
+	 * @type {Function|null}
+	 * @private
+	 */
+	this._customFunction = customFxn || null;
 }
 
 ScalarEventWidget.prototype = Object.create(WidgetBase.prototype);
@@ -61,6 +69,12 @@ ScalarEventWidget.prototype.destroy = function()
  */
 ScalarEventWidget.prototype._valueChanged = function(scalar)
 {
+	if (this._customFunction)
+	{
+		this._display.innerHTML = this._customFunction(scalar);
+		return;
+	}
+
 	if (scalar === null || scalar === undefined)
 	{
 		this._display.innerHTML = "~";

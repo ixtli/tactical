@@ -1,5 +1,4 @@
 import * as THREE from "../../bower_components/three.js/build/three.module";
-import Stats from "./stats";
 import generateDebounce from "./debounce";
 import TerrainMap from "./map";
 import TerrainMapMesh, {TILE_WIDTH} from "./mapmesh";
@@ -35,7 +34,6 @@ export default function Engine(container)
 	this._scene = null;
 	this._pickingScene = null;
 	this._renderer = null;
-	this._stats = null;
 
 	/**
 	 *
@@ -49,14 +47,14 @@ export default function Engine(container)
 	 * @type {function(this:Engine)}
 	 * @private
 	 */
-	this._frameCallback = this.animate.bind(this);
+	this._frameCallback = this._animate.bind(this);
 
 	/**
 	 *
 	 * @type {function}
 	 * @private
 	 */
-	this._resizeFunction = generateDebounce(this.onWindowResize.bind(this), 500);
+	this._resizeFunction = generateDebounce(this._onWindowResize.bind(this), 500);
 
 	/**
 	 *
@@ -192,12 +190,14 @@ Engine.prototype.init = function()
 	this._terrain.randomGround(7);
 	this._terrainMesh.regenerate();
 
-	this.setupCamera();
+	this._setupCamera();
 	this.setupScene();
-	this.constructGeometry();
-	this.constructRenderer();
+	this._constructGeometry();
+	this._constructRenderer();
 
 	this.registerEventHandlers();
+
+	this._animate(0.0);
 };
 
 Engine.prototype.destroy = function()
@@ -249,16 +249,24 @@ Engine.prototype.getSceneHeight = function()
 	return this._terrain.height() * TILE_WIDTH + 50;
 };
 
-Engine.prototype.setupCamera = function()
+/**
+ *
+ * @private
+ */
+Engine.prototype._setupCamera = function()
 {
 	const near = 0.1;
 	const far = 5000;
 	this._camera = new THREE.OrthographicCamera(0, 0, 0, 0, near, far);
-	this.updateCameraFrustum();
+	this._updateCameraFrustum();
 	this.lookAt(this._lookingAt, 0);
 };
 
-Engine.prototype.updateCameraFrustum = function()
+/**
+ *
+ * @private
+ */
+Engine.prototype._updateCameraFrustum = function()
 {
 	const aspect = this._aspectRatio;
 	const cam = this._camera;
@@ -274,8 +282,7 @@ Engine.prototype.updateCameraFrustum = function()
 Engine.prototype.constructGUI = function()
 {
 	const gui = new dat.GUI({resizable: false});
-	gui.add(this, "_zoom", 0, 32)
-		.onChange(this.updateCameraFrustum.bind(this));
+	gui.add(this, "_zoom", 0, 32).onChange(this._updateCameraFrustum.bind(this));
 };
 
 Engine.prototype.setupScene = function()
@@ -294,7 +301,11 @@ Engine.prototype.setupScene = function()
 	this._scene.add(light);
 };
 
-Engine.prototype.addHelpers = function()
+/**
+ *
+ * @private
+ */
+Engine.prototype._addHelpers = function()
 {
 	const gridHelper = new THREE.GridHelper(100, 100, "red", "gray");
 	gridHelper.position.x = -0.5;
@@ -306,10 +317,14 @@ Engine.prototype.addHelpers = function()
 	this._scene.add(axisHelper);
 };
 
-Engine.prototype.constructGeometry = function()
+/**
+ *
+ * @private
+ */
+Engine.prototype._constructGeometry = function()
 {
-	console.time("Engine::constructGeometry()");
-	console.timeStamp("Engine::constructGeometry()");
+	console.time("Engine::_constructGeometry()");
+	console.timeStamp("Engine::_constructGeometry()");
 	const pickingMaterial = new THREE.MeshBasicMaterial({
 		vertexColors: THREE.VertexColors,
 		blending: THREE.NoBlending,
@@ -329,7 +344,7 @@ Engine.prototype.constructGeometry = function()
 	const drawnObject = new THREE.Mesh(mapGeom, defaultMaterial);
 	this._scene.add(drawnObject);
 	this._pickingScene.add(new THREE.Mesh(pickingGeom, pickingMaterial));
-	console.timeEnd("Engine::constructGeometry()");
+	console.timeEnd("Engine::_constructGeometry()");
 };
 
 /**
@@ -350,20 +365,25 @@ Engine.prototype.removeObjectFromScene = function(obj)
 	this._scene.remove(obj);
 };
 
-Engine.prototype.constructRenderer = function()
+/**
+ *
+ * @private
+ */
+Engine.prototype._constructRenderer = function()
 {
 	const renderer = new THREE.WebGLRenderer({antialias: true});
 	window.devicePixelRatio = window.devicePixelRatio || 1;
 	renderer.setPixelRatio(window.devicePixelRatio);
 	renderer.setSize(window.innerWidth, window.innerHeight);
 	this._container.appendChild(renderer.domElement);
-	this._stats = new Stats();
-	this._container.appendChild(this._stats.dom);
-
 	this._renderer = renderer;
 };
 
-Engine.prototype.pick = function()
+/**
+ *
+ * @private
+ */
+Engine.prototype._pick = function()
 {
 	//render the picking scene off-screen
 	this._renderer.render(this._pickingScene, this._camera, this._pickingTexture);
@@ -413,18 +433,27 @@ Engine.prototype.pick = function()
 	emit("engine.pick", [this._lastPick]);
 };
 
-Engine.prototype.onWindowResize = function()
+/**
+ *
+ * @private
+ */
+Engine.prototype._onWindowResize = function()
 {
 	const width = window.innerWidth;
 	const height = window.innerHeight;
 	this._aspectRatio = width / height;
 	console.debug("Window resize", width, "x", height);
-	this.updateCameraFrustum();
+	this._updateCameraFrustum();
 	const dpr = this._renderer.getPixelRatio();
 	this._renderer.setSize(width * dpr, height * dpr);
 	this._pickingTexture.setSize(width * dpr, height * dpr);
 };
 
+/**
+ *
+ * @param {Vector3} target
+ * @returns {Vector3}
+ */
 Engine.prototype.getCameraPosition = function(target)
 {
 	const pos = new THREE.Vector3();
@@ -462,14 +491,14 @@ Engine.prototype.zoom = function(newFactor, ms)
 	{
 		this._zoom = target;
 		this._zoomTarget = target;
-		this.updateCameraFrustum();
+		this._updateCameraFrustum();
 	}
 	else
 	{
 		this._zoomTarget = target;
 		emit("engine.camera.zoom.begin", [ms]);
 		this._zoomTween = new TWEEN.Tween(this).to({_zoom: this._zoomTarget}, ms)
-			.onUpdate(this.updateCameraFrustum.bind(this))
+			.onUpdate(this._updateCameraFrustum.bind(this))
 			.onComplete(emitb("engine.camera.zoom.end", [ms]))
 			.start();
 	}
@@ -578,20 +607,24 @@ Engine.prototype.orbit = function(ms, reverse)
 /**
  *
  * @param {number} timestamp
+ * @private
  */
-Engine.prototype.animate = function(timestamp)
+Engine.prototype._animate = function(timestamp)
 {
 	requestAnimationFrame(this._frameCallback);
 	TWEEN.update(timestamp);
-	this.render();
-	this._stats.update();
+	this._render();
 };
 
-Engine.prototype.render = function()
+/**
+ *
+ * @private
+ */
+Engine.prototype._render = function()
 {
 	if (this._pickStateDirty)
 	{
-		this.pick();
+		this._pick();
 	}
 	this._renderer.render(this._scene, this._camera);
 };
