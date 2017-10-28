@@ -16,6 +16,9 @@ export const SOUTH = Symbol("south");
 export const EAST = Symbol("east");
 export const WEST = Symbol("west");
 
+const CAMERA_NEAR = 0.1;
+const CAMERA_FAR = 5000;
+
 /**
  *
  * @param {Element} container
@@ -30,10 +33,34 @@ export default function Engine(container)
 	 */
 	this._container = container;
 
-	this._camera = null;
-	this._scene = null;
-	this._pickingScene = null;
-	this._renderer = null;
+	/**
+	 *
+	 * @type {OrthographicCamera}
+	 * @private
+	 */
+	this._camera =
+		new THREE.OrthographicCamera(0, 0, 0, 0, CAMERA_NEAR, CAMERA_FAR);
+
+	/**
+	 *
+	 * @type {Scene}
+	 * @private
+	 */
+	this._scene = new THREE.Scene();
+
+	/**
+	 *
+	 * @type {Scene}
+	 * @private
+	 */
+	this._pickingScene = new THREE.Scene();
+
+	/**
+	 *
+	 * @type {WebGLRenderer}
+	 * @private
+	 */
+	this._renderer = new THREE.WebGLRenderer({antialias: true});
 
 	/**
 	 *
@@ -191,7 +218,7 @@ Engine.prototype.init = function()
 	this._terrainMesh.regenerate();
 
 	this._setupCamera();
-	this.setupScene();
+	this._setupScene();
 	this._constructGeometry();
 	this._constructRenderer();
 
@@ -255,9 +282,6 @@ Engine.prototype.getSceneHeight = function()
  */
 Engine.prototype._setupCamera = function()
 {
-	const near = 0.1;
-	const far = 5000;
-	this._camera = new THREE.OrthographicCamera(0, 0, 0, 0, near, far);
 	this._updateCameraFrustum();
 	this.lookAt(this._lookingAt, 0);
 };
@@ -279,17 +303,13 @@ Engine.prototype._updateCameraFrustum = function()
 	cam.updateProjectionMatrix();
 };
 
-Engine.prototype.constructGUI = function()
+/**
+ *
+ * @private
+ */
+Engine.prototype._setupScene = function()
 {
-	const gui = new dat.GUI({resizable: false});
-	gui.add(this, "_zoom", 0, 32).onChange(this._updateCameraFrustum.bind(this));
-};
-
-Engine.prototype.setupScene = function()
-{
-	this._scene = new THREE.Scene();
 	this.setBackgroundColor(new THREE.Color(0x8BFFF7));
-	this._pickingScene = new THREE.Scene();
 	this._pickingTexture =
 		new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
 	this._pickingTexture.stencilBuffer = false;
@@ -299,22 +319,17 @@ Engine.prototype.setupScene = function()
 	const light = new THREE.SpotLight(0xffffff, 1.5);
 	light.position.set(0, 500, 2000);
 	this._scene.add(light);
-};
 
-/**
- *
- * @private
- */
-Engine.prototype._addHelpers = function()
-{
-	const gridHelper = new THREE.GridHelper(100, 100, "red", "gray");
-	gridHelper.position.x = -0.5;
-	gridHelper.position.y = -0.5;
-	gridHelper.position.z = -0.5;
-	this._scene.add(gridHelper);
+	/**
+	 const gridHelper = new THREE.GridHelper(100, 100, "red", "gray");
+	 gridHelper.position.x = -0.5;
+	 gridHelper.position.y = -0.5;
+	 gridHelper.position.z = -0.5;
+	 this._scene.add(gridHelper);
 
-	const axisHelper = new THREE.AxisHelper(5);
-	this._scene.add(axisHelper);
+	 const axisHelper = new THREE.AxisHelper(5);
+	 this._scene.add(axisHelper);
+	 */
 };
 
 /**
@@ -371,12 +386,10 @@ Engine.prototype.removeObjectFromScene = function(obj)
  */
 Engine.prototype._constructRenderer = function()
 {
-	const renderer = new THREE.WebGLRenderer({antialias: true});
 	window.devicePixelRatio = window.devicePixelRatio || 1;
-	renderer.setPixelRatio(window.devicePixelRatio);
-	renderer.setSize(window.innerWidth, window.innerHeight);
-	this._container.appendChild(renderer.domElement);
-	this._renderer = renderer;
+	this._renderer.setPixelRatio(window.devicePixelRatio);
+	this._renderer.setSize(window.innerWidth, window.innerHeight);
+	this._container.appendChild(this._renderer.domElement);
 };
 
 /**
@@ -638,11 +651,10 @@ Engine.prototype.setBackgroundColor = function(newColor)
 	this._scene.background = newColor;
 };
 
-Engine.prototype.getCameraOrbitDegrees = function()
-{
-	return this._cameraOrbitDegrees;
-};
-
+/**
+ *
+ * @private
+ */
 Engine.prototype._updateCameraFacingDirection = function()
 {
 	let old = this._cameraOrbitDegrees;
@@ -672,13 +684,4 @@ Engine.prototype._updateCameraFacingDirection = function()
 	{
 		emit("engine.camera.facing", [this._cameraFacingDirection]);
 	}
-};
-
-/**
- *
- * @returns {Symbol}
- */
-Engine.prototype.getCameraCardinalDirection = function()
-{
-	return this._cameraFacingDirection;
 };
