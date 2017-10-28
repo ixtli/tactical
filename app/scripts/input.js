@@ -1,6 +1,6 @@
 import Engine from "./engine";
 import * as THREE from "../../bower_components/three.js/build/three.module";
-import {send} from "./bus";
+import {emit} from "./bus";
 
 /**
  *
@@ -139,7 +139,7 @@ InputController.prototype.deRegisterEventHandlers = function()
  */
 InputController.prototype.onWheel = function(event)
 {
-	send("input.wheel", event.deltaY);
+	emit("input.wheel", [event.deltaY]);
 };
 
 /**
@@ -148,7 +148,7 @@ InputController.prototype.onWheel = function(event)
  */
 InputController.prototype.onClick = function(event)
 {
-	send("input.click", {x: event.clientX, y: event.clientY});
+	emit("input.click", [event.clientX, event.clientY]);
 	this._engine.pickAtCoordinates(event.clientX, event.clientY);
 };
 
@@ -159,7 +159,7 @@ InputController.prototype.onClick = function(event)
 InputController.prototype.onMouseDown = function(event)
 {
 	this._mouseDown = true;
-	send("input.mousedown", {x: event.clientX, y: event.clientY});
+	emit("input.mousedown", [event.clientX, event.clientY]);
 };
 
 /**
@@ -169,7 +169,7 @@ InputController.prototype.onMouseDown = function(event)
 InputController.prototype.onMouseUp = function(event)
 {
 	this._mouseDown = false;
-	send("input.mouseup", {x: event.clientX, y: event.clientY});
+	emit("input.mouseup", [event.clientX, event.clientY]);
 };
 
 /**
@@ -182,7 +182,7 @@ InputController.prototype.onMouseMove = function(event)
 
 	if (this._mouseDown)
 	{
-		send("input.drag", {x: event.clientX, y: event.clientY});
+		emit("input.drag", [event.clientX, event.clientY]);
 	}
 };
 
@@ -193,7 +193,7 @@ InputController.prototype.onMouseMove = function(event)
 InputController.prototype.onKeyPress = function(event)
 {
 	// For now we want to respect clicks when navigating with keyboard
-	send("input.keypress", event);
+	emit("input.keypress", [event]);
 };
 
 /**
@@ -202,7 +202,7 @@ InputController.prototype.onKeyPress = function(event)
  */
 InputController.prototype.onKeyDown = function(event)
 {
-	send("input.keydown", event);
+	emit("input.keydown", [event]);
 };
 
 /**
@@ -211,6 +211,6 @@ InputController.prototype.onKeyDown = function(event)
  */
 InputController.prototype.onKeyUp = function(event)
 {
-	send("input.keyup", event);
+	emit("input.keyup", [event]);
 };
 

@@ -3,8 +3,8 @@ import Stats from "./stats";
 import generateDebounce from "./debounce";
 import TerrainMap from "./map";
 import TerrainMapMesh, {TILE_WIDTH} from "./mapmesh";
-import {send} from "./bus";
 import TWEEN from "./Tween";
+import {emit, emitb} from "./bus";
 
 /**
  *
@@ -177,7 +177,6 @@ Engine.prototype.init = function()
 	this.setupScene();
 	this.constructGeometry();
 	this.constructRenderer();
-	//this.constructGUI();
 
 	this.registerEventHandlers();
 };
@@ -343,6 +342,8 @@ Engine.prototype.constructRenderer = function()
 	this._renderer = renderer;
 };
 
+const PICK_VECTOR = new THREE.Vector3();
+
 Engine.prototype.pick = function()
 {
 	//render the picking scene off-screen
@@ -362,11 +363,41 @@ Engine.prototype.pick = function()
 	let id = ( PICK_PIXEL_BUFFER[0] << 16 ) | ( PICK_PIXEL_BUFFER[1] << 8 ) |
 					 ( PICK_PIXEL_BUFFER[2] );
 
-	// Remember to adjust +1 because 0 is no object present
-	const position = id > 0 ? this._terrain.vectorForIndex(id - 1) : false;
+	let lp = this._lastPick;
 
-	this._lastPick = position;
-	send("engine.pick", position);
+	if (!id)
+	{
+		if (lp)
+		{
+			emit("engine.pick", [false]);
+			this._lastPick = null;
+		}
+		return;
+	}
+
+	id--;
+
+	if (id > this._terrain._data.length || !this._terrain._data[id])
+	{
+		console.error("Could not find tile", id);
+		return null;
+	}
+
+	let w = this._terrain.width();
+	let tilesInPlane = w * this._terrain.height();
+	let z = Math.floor(id / tilesInPlane);
+	let subIndex = id % tilesInPlane;
+	let x = subIndex % w;
+	let y = Math.floor(subIndex / w);
+	PICK_VECTOR.set(x, y, z);
+
+	if (lp && PICK_VECTOR.equals(lp))
+	{
+		return;
+	}
+
+	this._lastPick = PICK_VECTOR.clone();
+	emit("engine.pick", [this._lastPick]);
 };
 
 Engine.prototype.onWindowResize = function()
@@ -412,7 +443,7 @@ Engine.prototype.zoom = function(newFactor, ms)
 		this._zoomTween = null;
 	}
 
-	send("engine.zoom", this._zoomTarget);
+	emit("engine.camera.zoom", [this._zoomTarget]);
 
 	if (ms < 1)
 	{
@@ -456,7 +487,7 @@ Engine.prototype.lookAt = function(target, ms)
 	if (this._lookingAt !== target)
 	{
 		this._lookingAt.set(target.x, target.y, target.z);
-		send("engine.camera.move", this._lookingAt);
+		emit("engine.camera.move", [this._lookingAt]);
 	}
 
 	if (this._panTween)
@@ -472,10 +503,10 @@ Engine.prototype.lookAt = function(target, ms)
 	}
 	else
 	{
-		send("engine.camera.pan.begin", ms);
+		emit("engine.camera.pan.begin", [ms]);
 		this._panTween = new TWEEN.Tween(this._camera.position).to(pos)
 			.easing(TWEEN.Easing.Quintic.Out)
-			.onComplete(send.bind(send, "engine.camera.pan.end"))
+			.onComplete(emitb("engine.camera.pan.end", null))
 			.start();
 	}
 };
@@ -496,7 +527,7 @@ Engine.prototype.orbit = function(ms, reverse)
 	}
 
 	const self = this;
-	send("engine.camera.orbit.begin", ot);
+	emit("engine.camera.orbit.begin", [ot]);
 	this._orbitTween = new TWEEN.Tween(this).to({_cameraOrbitDegrees: ot}, ms)
 		.onUpdate(() =>
 		{
@@ -506,7 +537,7 @@ Engine.prototype.orbit = function(ms, reverse)
 		{
 			self._orbitTarget = self._orbitTarget % 360;
 			self._cameraOrbitDegrees = self._orbitTarget;
-			send("engine.camera.orbit.end", self._orbitTarget);
+			emit("engine.camera.orbit.end", [self._orbitTarget]);
 		})
 		.easing(TWEEN.Easing.Quintic.Out)
 		.start();

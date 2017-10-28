@@ -1,29 +1,30 @@
 /**
  *
- * @type {Object.<string, Array.<Function>>}
+ * @type {Object.<string, Array.<Object, Function>>}
  */
 const registry = {};
 
 /**
  *
  * @param {string|number} name
- * @param {*} message
+ * @param {Array.<*>|null} message
  * @returns {Array.<*>}
  */
-export function send(name, message)
+export function emit(name, message)
 {
 	const list = registry[name];
 
 	if (!list)
 	{
-		return;
+		return [];
 	}
 
 	const count = list.length;
 	const responses = new Array(count);
 	for (let i = 0; i < count; i++)
 	{
-		responses[i] = list[i](message);
+		let elt = list[i];
+		responses[i] = elt[0].apply(elt[1], message || []);
 	}
 
 	return responses;
@@ -32,9 +33,21 @@ export function send(name, message)
 /**
  *
  * @param {string|number} name
+ * @param {Array.<*>|null} message
+ * @returns {function(this:emit)}
+ */
+export function emitb(name, message)
+{
+	return emit.bind(emit, name, message);
+}
+
+/**
+ *
+ * @param {string|number} name
+ * @param {Object} context
  * @param {Function} callback
  */
-export function subscribe(name, callback)
+export function subscribe(name, context, callback)
 {
 	if (!registry[name])
 	{
@@ -45,40 +58,53 @@ export function subscribe(name, callback)
 	const count = list.length;
 	for (let i = 0; i < count; i++)
 	{
-		console.assert(list[count] !== callback, "Double subscription to " + name);
+		let [f, c] = list[count];
+		console.assert(!(c === context && f ===
+										 callback), "Double subscription to " + name);
 	}
 
-	list.push(callback);
+	list.push([callback, context]);
 }
 
 /**
  *
  * @param {string|number} name
- * @param {Function} callback
- * @returns {Function}
+ * @param {Object} context
+ * @param {function} fxn
  */
-export function unsubscribe(name, callback)
+export function unsubscribe(name, context, fxn)
 {
 	console.assert(registry[name], "Attempt to unsubscribe from unknown " + name);
 
 	const list = registry[name];
 	const count = list.length;
-	for (let i = 0; i < count; i++)
+	let removed = 0;
+
+	for (let i = count; i >= 0; i--)
 	{
-		if (list[i] !== callback)
+		let [f, c] = list[i];
+
+		if (c !== context)
 		{
 			continue;
 		}
 
-		const ret = list.splice(i, 1)[0];
-
-		if (list.length === 0)
+		if (fxn && fxn !== f)
 		{
-			delete registry[name];
+			continue;
 		}
 
-		return ret;
+		list.splice(i, 1);
+		removed++;
 	}
 
-	throw new Error("Unsubscription of unknown callback from " + name);
+	if (!removed)
+	{
+		throw new Error("Unsubscription of unknown callback from " + name);
+	}
+
+	if (list.length === 0)
+	{
+		delete registry[name];
+	}
 }

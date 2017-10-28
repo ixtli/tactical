@@ -57,62 +57,6 @@ export default function SelectionManager(graphicsEngine)
 
 	/**
 	 *
-	 * @type {function(this:SelectionManager)}
-	 * @private
-	 */
-	this._enginePickCallback = this._engineHasPicked.bind(this);
-
-	/**
-	 *
-	 * @type {function(this:SelectionManager)}
-	 * @private
-	 */
-	this._clickCallback = this._userClicked.bind(this);
-
-	/**
-	 *
-	 * @type {function(this:SelectionManager)}
-	 * @private
-	 */
-	this._mouseDownCallback = this._mouseDown.bind(this);
-
-	/**
-	 *
-	 * @type {function(this:SelectionManager)}
-	 * @private
-	 */
-	this._keyPressCallback = this._gotKey.bind(this);
-
-	/**
-	 *
-	 * @type {function(this:SelectionManager)}
-	 * @private
-	 */
-	this._keyUpCallback = this._keyUp.bind(this);
-
-	/**
-	 *
-	 * @type {function(this:SelectionManager)}
-	 * @private
-	 */
-	this._keyDownCallback = this._keyDown.bind(this);
-
-	/**
-	 *
-	 * @type {function(this:SelectionManager)}
-	 * @private
-	 */
-	this._dragCallback = this._onDrag.bind(this);
-
-	/**
-	 *
-	 * @type {function(this:SelectionManager)}
-	 * @private
-	 */
-	this._wheelCallback = this._onWheel.bind(this);
-
-	/**
-	 *
 	 * @type {boolean}
 	 * @private
 	 */
@@ -191,25 +135,26 @@ SelectionManager.prototype.init = function()
 	this._engine.addObjectToScene(this._selectionBox);
 	this._engine.addObjectToScene(this._highlightBox);
 
-	subscribe("engine.pick", this._enginePickCallback);
-	subscribe("input.click", this._clickCallback);
-	subscribe("input.mousedown", this._mouseDownCallback);
-	subscribe("input.keypress", this._keyPressCallback);
-	subscribe("input.keyup", this._keyUpCallback);
-	subscribe("input.keydown", this._keyDownCallback);
-	subscribe("input.drag", this._dragCallback);
-	subscribe("input.wheel", this._wheelCallback);
+	subscribe("engine.pick", this, this._engineHasPicked);
+	subscribe("input.click", this, this._userClicked);
+	subscribe("input.mousedown", this, this._mouseDown);
+	subscribe("input.keypress", this, this._keyPress);
+	subscribe("input.keyup", this, this._keyUp);
+	subscribe("input.keydown", this, this._keyDown);
+	subscribe("input.drag", this, this._onDrag);
+	subscribe("input.wheel", this, this._onWheel);
 };
 
 SelectionManager.prototype.destroy = function()
 {
-	unsubscribe("engine.pick", this._enginePickCallback);
-	unsubscribe("input.click", this._clickCallback);
-	unsubscribe("input.keypress", this._keyPressCallback);
-	unsubscribe("input.keyup", this._keyUpCallback);
-	unsubscribe("input.keydown", this._keyDownCallback);
-	unsubscribe("input.drag", this._dragCallback);
-	unsubscribe("input.wheel", this._wheelCallback);
+	unsubscribe("engine.pick", this, this._engineHasPicked);
+	unsubscribe("input.click", this, this._userClicked);
+	unsubscribe("input.mousedown", this, this._mouseDown);
+	unsubscribe("input.keypress", this, this._keyPress);
+	unsubscribe("input.keyup", this, this._keyUp);
+	unsubscribe("input.keydown", this, this._keyDown);
+	unsubscribe("input.drag", this, this._onDrag);
+	unsubscribe("input.wheel", this, this._onWheel);
 
 	this._engine.removeObjectFromScene(this._selectionBox);
 	this._engine.removeObjectFromScene(this._highlightBox);
@@ -251,23 +196,23 @@ SelectionManager.prototype._onDrag = function(evt)
 
 /**
  *
- * @param {{x: number, y: number}} evt
+ * @param {number} x
+ * @param {number} y
  * @private
  */
-SelectionManager.prototype._mouseDown = function(evt)
+SelectionManager.prototype._mouseDown = function(x, y)
 {
-	this._mouseDownLocation.set(evt.x, evt.y);
-	this._previousDragLocation.set(evt.x, evt.y);
+	this._mouseDownLocation.set(x, y);
+	this._previousDragLocation.set(x, y);
 };
 
 /**
  *
- /**
- *
- * @param {{x: number, y: number}} evt
+ * @param {number} x
+ * @param {number} y
  * @private
  */
-SelectionManager.prototype._userClicked = function(evt)
+SelectionManager.prototype._userClicked = function(x, y)
 {
 	this._nextPickSelects = true;
 };
@@ -332,7 +277,7 @@ SelectionManager.prototype.highlightTile = function(vec)
  * @param {KeyboardEvent} event
  * @private
  */
-SelectionManager.prototype._gotKey = function(event)
+SelectionManager.prototype._keyPress = function(event)
 {
 	let updateSelection = false;
 	switch (event.key)

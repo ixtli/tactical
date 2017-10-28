@@ -1,5 +1,3 @@
-import * as THREE from "../../bower_components/three.js/build/three.module";
-
 /**
  *
  * @param {number} w
@@ -80,28 +78,6 @@ TerrainMap.prototype.randomGround = function(groundDepth)
 	console.timeEnd("TerrainMap::randomGround()");
 	console.debug("Generated map with", tileCount, "tiles.");
 	this._data = newData;
-};
-
-/**
- *
- * @param {number} idx
- * @returns {Vector3}
- */
-TerrainMap.prototype.vectorForIndex = function(idx)
-{
-	if (idx > this._data.length || !this._data[idx])
-	{
-		console.error("Could not find tile", idx);
-		return null;
-	}
-
-	const w = this._width;
-	const tilesInPlane = w * this._height;
-	const z = Math.floor(idx / tilesInPlane);
-	const subIndex = idx % tilesInPlane;
-	const x = subIndex % w;
-	const y = Math.floor(subIndex / w);
-	return new THREE.Vector3(x, y, z);
 };
 
 /**
