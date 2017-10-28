@@ -49,6 +49,9 @@ export function emitb(name, message)
  */
 export function subscribe(name, context, callback)
 {
+	console.assert(typeof context === "object", "Invalid context");
+	console.assert(typeof callback === "function", "Invalid callback");
+
 	if (!registry[name])
 	{
 		registry[name] = [];
@@ -58,7 +61,7 @@ export function subscribe(name, context, callback)
 	const count = list.length;
 	for (let i = 0; i < count; i++)
 	{
-		let [f, c] = list[count];
+		let [f, c] = list[i];
 		console.assert(!(c === context && f ===
 										 callback), "Double subscription to " + name);
 	}

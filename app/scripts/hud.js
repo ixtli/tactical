@@ -1,4 +1,6 @@
 import {subscribe, unsubscribe} from "./bus";
+import ZoomWidget from "./widgets/zoom_widget";
+import PositionWidget from "./widgets/position_widget";
 
 /**
  *
@@ -21,43 +23,35 @@ export default function HUD(container)
 	 */
 	this._layer = document.createElement("div");
 
-	/**
-	 *
-	 * @type {Element}
-	 * @private
-	 */
-	this._zoomWidget = document.createElement("h1");
+	this._widgets = [];
 }
 
 HUD.prototype.init = function()
 {
+	this._widgets.push(new ZoomWidget());
+	this._widgets.push(new PositionWidget());
+
 	const layer = this._layer;
+
+	const len = this._widgets.length;
+	for (let i = 0; i < len; i++)
+	{
+		this._widgets[i].init();
+		layer.appendChild(this._widgets[i].getContainer());
+	}
+
 	layer.id = "hud-container";
-
-	const v = document.createElement("h1");
-
-	v.id = "zoom-level";
-	v.innerHTML = "0";
-	this._zoomWidget = v;
-
-	layer.appendChild(v);
-	this._container.appendChild(this._layer);
-
-	subscribe("engine.camera.zoom", this, this._zoomChanged);
+	this._container.appendChild(layer);
 };
 
 HUD.prototype.destroy = function()
 {
-	unsubscribe("engine.camera.zoom", this, this._zoomChanged);
+	const len = this._widgets.length;
+	for (let i = 0; i < len; i++)
+	{
+		this._widgets[i].destroy();
+	}
+
 	this._layer.remove();
 };
 
-/**
- *
- * @param {number} newZoom
- * @private
- */
-HUD.prototype._zoomChanged = function(newZoom)
-{
-	this._zoomWidget.innerHTML = String(newZoom);
-};
