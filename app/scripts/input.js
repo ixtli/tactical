@@ -115,7 +115,8 @@ InputController.prototype.registerEventHandlers = function()
 	// https://developers.google.com/web/updates/2016/06/passive-event-listeners
 	// noinspection JSCheckFunctionSignatures
 	this._container.addEventListener("wheel", this._wheelFunction, {
-		passive: true});
+		passive: true
+	});
 
 	window.addEventListener("keyup", this._keyUpFunction);
 	window.addEventListener("keydown", this._keyDownFunction);
@@ -197,8 +198,14 @@ InputController.prototype.onMouseMove = function(event)
  */
 InputController.prototype.onKeyPress = function(event)
 {
-	// For now we want to respect clicks when navigating with keyboard
-	emit("input.keypress", [event]);
+	if (event.ctrlKey)
+	{
+		emit("input.signal", [event]);
+	}
+	else
+	{
+		emit("input.keypress", [event]);
+	}
 };
 
 /**

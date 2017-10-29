@@ -1,6 +1,6 @@
 import * as THREE from "../../bower_components/three.js/build/three.module";
 import Engine, {EAST, NORTH, SOUTH, WEST} from "./engine"; // jshint ignore:line
-import {TILE_WIDTH} from "./mapmesh";
+import {TILE_WIDTH, TILE_HEIGHT} from "./mapmesh";
 import {emit, subscribe, unsubscribe} from "./bus";
 
 /**
@@ -46,7 +46,7 @@ export default function SelectionManager(graphicsEngine)
 	 * @private
 	 */
 	this._highlightBoxGeometry =
-		new THREE.BoxGeometry(TILE_WIDTH, TILE_WIDTH, TILE_WIDTH);
+		new THREE.BoxGeometry(TILE_WIDTH, TILE_HEIGHT, TILE_WIDTH);
 
 	/**
 	 *

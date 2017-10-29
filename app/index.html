@@ -23,9 +23,9 @@
 <body>
 <div id="wrapper"></div>
 <script async type="module">
-	import TacticalEngine from "./scripts/main.js";
-
+	import TacticalEngine, {INIT, EDITOR} from "./scripts/main.js";
 	window.TE = new TacticalEngine(document.getElementById("wrapper"));
+	window.TE.changeState(INIT).changeState(EDITOR);
 </script>
 </body>
 </html>

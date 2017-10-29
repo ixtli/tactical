@@ -22,10 +22,18 @@ const CAMERA_FAR = 5000;
 /**
  *
  * @param {Element} container
+ * @param {{}?} options
  * @constructor
  */
-export default function Engine(container)
+export default function Engine(container, options)
 {
+	/**
+	 *
+	 * @type {{}|{antialias: boolean}}
+	 * @private
+	 */
+	this._rendererOptions = options || {antialias: false};
+
 	/**
 	 *
 	 * @type {Element}
@@ -39,7 +47,13 @@ export default function Engine(container)
 	 * @private
 	 */
 	this._camera =
-		new THREE.OrthographicCamera(0, 0, 0, 0, CAMERA_NEAR, CAMERA_FAR);
+		new THREE.OrthographicCamera(0,
+			0,
+			0,
+			0,
+			CAMERA_NEAR,
+			CAMERA_FAR,
+			this._rendererOptions);
 
 	/**
 	 *
@@ -60,7 +74,7 @@ export default function Engine(container)
 	 * @type {WebGLRenderer}
 	 * @private
 	 */
-	this._renderer = new THREE.WebGLRenderer({antialias: true});
+	this._renderer = new THREE.WebGLRenderer();
 
 	/**
 	 *

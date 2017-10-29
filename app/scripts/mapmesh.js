@@ -3,6 +3,7 @@ import * as THREE from "../../bower_components/three.js/build/three.module";
 import TerrainMap from "./map"; // jshint ignore:line
 
 export const TILE_WIDTH = 1;
+export const TILE_HEIGHT = 1;
 
 function _applyVertColors(geom, color)
 {
@@ -56,7 +57,7 @@ TerrainMapMesh.prototype.regenerate = function()
 	const d = this._map.depth();
 	const h = this._map.height();
 	const w = this._map.width();
-	const boxGeom = new THREE.BoxGeometry(TILE_WIDTH, TILE_WIDTH, TILE_WIDTH);
+	const boxGeom = new THREE.BoxGeometry(TILE_WIDTH, TILE_HEIGHT, TILE_WIDTH);
 	const color = new THREE.Color();
 	const matrix = new THREE.Matrix4();
 	const quaternion = new THREE.Quaternion();
