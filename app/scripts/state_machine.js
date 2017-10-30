@@ -29,8 +29,13 @@ export default function generateFSM(context, stateMap, initial, name)
 	 * @param {Symbol} newState
 	 * @returns {Object}
 	 */
-	return (newState) =>
+	let ret = (newState) =>
 	{
+		if (newState === currentState)
+		{
+			return context;
+		}
+
 		const tName = stringifySymbol(newState);
 		const cName = stringifySymbol(currentState);
 		const target = stateMap[newState];
@@ -42,33 +47,45 @@ export default function generateFSM(context, stateMap, initial, name)
 		console.assert(target.from.has(currentState),
 			`${name}: Can't transition to ${tName} from ${cName}`);
 
-		let ts = `%c${name}:State:Leave:${cName}`;
+		let ts = `${name}:State:Leave:${cName}`;
 		if (current.leave)
 		{
-			console.time(ts, "color: #bada55");
+			console.time(ts);
 			current.leave.call(context, newState);
-			console.timeEnd(ts, "color: #bada55");
+			console.timeEnd(ts);
 		}
 		else
 		{
-			console.debug(ts, "color: #bada55");
+			console.debug(ts);
 		}
 
-		ts = `%c${name}:State:Enter:${tName}`;
+		ts = `${name}:State:Enter:${tName}`;
 		if (target.enter)
 		{
-			console.time(ts, "color: #bada55");
+			console.time(ts);
 			target.enter.call(context, currentState);
-			console.timeEnd(ts, "color: #bada55");
+			console.timeEnd(ts);
 		}
 		else
 		{
-			console.debug(ts, "color: #bada55");
+			console.debug(ts);
 		}
 
 		currentState = newState;
 
 		return context;
 	};
+
+	/**
+	 * @type {Function}
+	 */
+	Object.defineProperty(ret, "getCurrentState", {
+		enumerable: false,
+		configurable: false,
+		writeable: false,
+		value: () => { return currentState; }
+	});
+
+	return ret;
 }
 

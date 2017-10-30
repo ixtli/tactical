@@ -103,6 +103,16 @@ export default function TacticalEngine(container)
 			leave: this._leaveEditorState,
 			from: new Set([INIT, GAME, EDITOR_UI]),
 			to: new Set([GAME, EDITOR_UI]),
+		}, [EDITOR_UI]: {
+			enter: this._enterEditorUIState,
+			leave: this._leaveEditorUIState,
+			from: new Set([INIT, GAME, EDITOR]),
+			to: new Set([GAME, EDITOR])
+		}, [GAME]: {
+			enter: this._enterGameState,
+			leave: this._leaveGameState,
+			from: new Set([INIT, EDITOR, EDITOR_UI]),
+			to: new Set([EDITOR, EDITOR_UI])
 		}
 	};
 
@@ -117,11 +127,35 @@ export default function TacticalEngine(container)
 	});
 }
 
+/**
+ *
+ * @private
+ */
 TacticalEngine.prototype._enterInitState = function()
 {
 	this.engine.init();
 	this.inputController.init();
 	subscribe("input.signal", this, this._controlKey);
+};
+
+TacticalEngine.prototype._enterEditorUIState = function()
+{
+
+};
+
+TacticalEngine.prototype._leaveEditorUIState = function()
+{
+
+};
+
+TacticalEngine.prototype._enterGameState = function()
+{
+
+};
+
+TacticalEngine.prototype._leaveGameState = function()
+{
+
 };
 
 /**
@@ -130,7 +164,10 @@ TacticalEngine.prototype._enterInitState = function()
  */
 TacticalEngine.prototype._leaveEditorState = function()
 {
-
+	this._selectionManager.destroy();
+	this._selectionManager = null;
+	this._currentHUD.destroy();
+	this._currentHUD = null;
 };
 
 /**
@@ -153,5 +190,16 @@ TacticalEngine.prototype._enterEditorState = function()
  */
 TacticalEngine.prototype._controlKey = function(event)
 {
-
+	switch(event.key)
+	{
+		case "g":
+			this.changeState(GAME);
+			break;
+		case "e":
+			this.changeState(EDITOR);
+			break;
+		default:
+			console.log("Unhandled control sequence:", event.key);
+			break;
+	}
 };

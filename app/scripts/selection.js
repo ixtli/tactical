@@ -304,6 +304,7 @@ SelectionManager.prototype.selectTile = function(vec)
 {
 	this._selectionBox.position.copy(vec);
 	this._selectionBox.position.multiplyScalar(TILE_WIDTH);
+	this._selectionBox.position.add(new THREE.Vector3(0, 0, 0));
 	emit("selection.tile", [vec]);
 };
 

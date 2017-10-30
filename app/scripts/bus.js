@@ -83,7 +83,7 @@ export function unsubscribe(name, context, fxn)
 	const count = list.length;
 	let removed = 0;
 
-	for (let i = count; i >= 0; i--)
+	for (let i = count - 1; i >= 0; i--)
 	{
 		let [f, c] = list[i];
 
