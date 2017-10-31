@@ -189,7 +189,7 @@ TacticalEngine.prototype._enterEditorState = function()
 {
 	this._currentTerrain = new TerrainMap(25,25,25);
 	this._currentTerrain.init();
-	this._currentTerrain.randomGround(25);
+	//this._currentTerrain.randomGround(25);
 	this._currentTerrain.getMesh().regenerate();
 	this.engine.useMap(this._currentTerrain);
 	this._selectionManager = new SelectionManager(this.engine);

@@ -126,16 +126,14 @@ TerrainMapMesh.prototype.regenerate = function()
 			}
 		}
 	}
-
 	console.timeEnd("TerrainMap::regenerateGeometry()");
+
 	console.debug("Generated", generated, "tiles.");
 
 	console.time("TerrainMap::generateBufferGeometry");
 	newGeometry.mergeVertices();
 	pickingGeom.mergeVertices();
-	this._geometry.dispose();
 	this._geometry.fromGeometry(newGeometry);
-	this._pickingGeometry.dispose();
 	this._pickingGeometry.fromGeometry(pickingGeom);
 	console.timeEnd("TerrainMap::generateBufferGeometry");
 

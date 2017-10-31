@@ -1,5 +1,6 @@
 import * as THREE from "../../bower_components/three.js/build/three.module";
 import TerrainMapMesh from "./mapmesh";
+import {subscribe, unsubscribe} from "./bus";
 
 /**
  *
@@ -52,17 +53,40 @@ export default function TerrainMap(w, h, d)
 
 TerrainMap.prototype.init = function()
 {
-	/**
-	 this.randomGround(7);
-	 this.regenerate();
-	 */
 	this._mesh.init();
+	subscribe("editor.tile.toggle", this, this._toggleTile);
 };
 
 TerrainMap.prototype.destroy = function()
 {
+	unsubscribe("editor.tile.toggle", this, this._toggleTile);
 	this._data = null;
 	this._mesh.destroy();
+};
+
+/**
+ *
+ * @param {Vector3} vec
+ * @private
+ */
+TerrainMap.prototype._toggleTile = function(vec)
+{
+	if (vec.x < 0 || vec.y < 0 || vec.z < 0)
+	{
+		return;
+	}
+
+	const h = this._height;
+	const w = this._width;
+
+	if (vec.x >= w || vec.y >= h || vec.z >= this._depth)
+	{
+		return;
+	}
+
+	const idx = (vec.z * h * w) + (vec.y * w) + vec.x;
+	this._data[idx] = this._data[idx] ? 0 : 1;
+	this._mesh.regenerate();
 };
 
 /**

@@ -1,6 +1,6 @@
 import * as THREE from "../../bower_components/three.js/build/three.module";
 import generateDebounce from "./debounce";
-import TerrainMap from "./map";
+import TerrainMap from "./map"; // jshint ignore:line
 import {TILE_HEIGHT, TILE_WIDTH} from "./mapmesh";
 import TWEEN from "./Tween";
 import {emit, emitb} from "./bus";

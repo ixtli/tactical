@@ -359,6 +359,7 @@ SelectionManager.prototype._keyPress = function(event)
 			updateSelection = true;
 			break;
 		case " ":
+			emit("editor.tile.toggle", [this._selection]);
 			break;
 		default:
 			console.log(event.key);
