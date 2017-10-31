@@ -1,4 +1,5 @@
 import * as THREE from "../../bower_components/three.js/build/three.module";
+import TerrainMapMesh from "./mapmesh";
 
 /**
  *
@@ -41,9 +42,28 @@ export default function TerrainMap(w, h, d)
 	 */
 	this._data = new Uint16Array(w * h * d);
 
-	this._geometry = null;
-	this._pickingGeometry = null;
+	/**
+	 *
+	 * @type {TerrainMapMesh}
+	 * @private
+	 */
+	this._mesh = new TerrainMapMesh(this);
 }
+
+TerrainMap.prototype.init = function()
+{
+	/**
+	 this.randomGround(7);
+	 this.regenerate();
+	 */
+	this._mesh.init();
+};
+
+TerrainMap.prototype.destroy = function()
+{
+	this._data = null;
+	this._mesh.destroy();
+};
 
 /**
  *
@@ -54,7 +74,7 @@ TerrainMap.prototype.randomGround = function(groundDepth)
 	const d = this._depth;
 	const h = this._height;
 	const w = this._width;
-	const newData = new Uint16Array(w * h * d);
+	const data = this._data;
 	let zOffset = 0;
 	let offset = 0;
 	let tileCount = 0;
@@ -67,19 +87,13 @@ TerrainMap.prototype.randomGround = function(groundDepth)
 			offset = zOffset + y * w;
 			for (let x = 0; x < w; x++)
 			{
-				if (Math.random() < y / groundDepth)
-				{
-					continue;
-				}
-
-				newData[offset + x] = 1;
+				data[offset + x] = (Math.random() < y / groundDepth) ? 0 : 1;
 				tileCount++;
 			}
 		}
 	}
 	console.timeEnd("TerrainMap::randomGround()");
 	console.debug("Generated map with", tileCount, "tiles.");
-	this._data = newData;
 };
 
 /**
@@ -138,4 +152,13 @@ TerrainMap.prototype.width = function()
 TerrainMap.prototype.depth = function()
 {
 	return this._depth;
+};
+
+/**
+ *
+ * @returns {TerrainMapMesh}
+ */
+TerrainMap.prototype.getMesh = function()
+{
+	return this._mesh;
 };

@@ -358,7 +358,10 @@ SelectionManager.prototype._keyPress = function(event)
 			this._selection.y--;
 			updateSelection = true;
 			break;
+		case " ":
+			break;
 		default:
+			console.log(event.key);
 			return;
 	}
 

@@ -5,6 +5,7 @@ import EditorHUD from "./editor_hud";
 import HUD from "./hud"; // jshint ignore:line
 import {subscribe} from "./bus";
 import generateFSM from "./state_machine";
+import TerrainMap from "./map";
 
 /**
  *
@@ -88,6 +89,13 @@ export default function TacticalEngine(container)
 
 	/**
 	 *
+	 * @type {TerrainMap}
+	 * @private
+	 */
+	this._currentTerrain = null;
+
+	/**
+	 *
 	 * @type {Object.<Symbol, StateDesc>}
 	 */
 	const stateMap = {
@@ -168,6 +176,9 @@ TacticalEngine.prototype._leaveEditorState = function()
 	this._selectionManager = null;
 	this._currentHUD.destroy();
 	this._currentHUD = null;
+	this.engine.unloadCurrentMap();
+	this._currentTerrain.destroy();
+	this._currentTerrain = null;
 };
 
 /**
@@ -176,6 +187,11 @@ TacticalEngine.prototype._leaveEditorState = function()
  */
 TacticalEngine.prototype._enterEditorState = function()
 {
+	this._currentTerrain = new TerrainMap(25,25,25);
+	this._currentTerrain.init();
+	this._currentTerrain.randomGround(25);
+	this._currentTerrain.getMesh().regenerate();
+	this.engine.useMap(this._currentTerrain);
 	this._selectionManager = new SelectionManager(this.engine);
 	this._selectionManager.init();
 	this._currentHUD = new EditorHUD();

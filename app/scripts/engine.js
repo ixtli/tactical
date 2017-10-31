@@ -1,7 +1,7 @@
 import * as THREE from "../../bower_components/three.js/build/three.module";
 import generateDebounce from "./debounce";
 import TerrainMap from "./map";
-import TerrainMapMesh, {TILE_WIDTH} from "./mapmesh";
+import {TILE_HEIGHT, TILE_WIDTH} from "./mapmesh";
 import TWEEN from "./Tween";
 import {emit, emitb} from "./bus";
 
@@ -96,20 +96,6 @@ export default function Engine(container, options)
 	 * @private
 	 */
 	this._resizeFunction = generateDebounce(this._onWindowResize.bind(this), 500);
-
-	/**
-	 *
-	 * @type {TerrainMap}
-	 * @private
-	 */
-	this._terrain = new TerrainMap(100, 2, 100);
-
-	/**
-	 *
-	 * @type {TerrainMapMesh}
-	 * @private
-	 */
-	this._terrainMesh = new TerrainMapMesh(this._terrain);
 
 	/**
 	 *
@@ -222,29 +208,43 @@ export default function Engine(container, options)
 	 * @private
 	 */
 	this._cameraFacingDirection = NORTH;
+
+	/**
+	 *
+	 * @type {null|TerrainMap}
+	 * @private
+	 */
+	this._currentMap = null;
+
+	/**
+	 *
+	 * @type {null|Mesh}
+	 * @private
+	 */
+	this._currentMapSceneObject = null;
+
+	/**
+	 *
+	 * @type {null|Mesh}
+	 * @private
+	 */
+	this._currentMapPickingSceneObject = null;
 }
 
 Engine.prototype.init = function()
 {
 	console.log("Initializing graphics engine.");
 
-	this._terrain.randomGround(7);
-	this._terrainMesh.regenerate();
-
 	this._setupCamera();
 	this._setupScene();
-	this._constructGeometry();
 	this._constructRenderer();
-
 	this.registerEventHandlers();
-
 	this._animate(0.0);
 };
 
 Engine.prototype.destroy = function()
 {
 	this.deRegisterEventHandlers();
-	this._terrainMesh.destroy();
 };
 
 Engine.prototype.registerEventHandlers = function()
@@ -282,12 +282,14 @@ Engine.prototype.pickAtCoordinates = function(x, y, force)
 
 Engine.prototype.getSceneWidth = function()
 {
-	return this._terrain.width() * TILE_WIDTH + 50;
+	const w = this._currentMap ? this._currentMap.width() : 1;
+	return w * TILE_WIDTH + 50;
 };
 
 Engine.prototype.getSceneHeight = function()
 {
-	return this._terrain.height() * TILE_WIDTH + 50;
+	const h = this._currentMap ? this._currentMap.height() : 1;
+	return h * TILE_HEIGHT + 50;
 };
 
 /**
@@ -348,12 +350,12 @@ Engine.prototype._setupScene = function()
 
 /**
  *
- * @private
+ * @param {TerrainMap} newMap
  */
-Engine.prototype._constructGeometry = function()
+Engine.prototype.useMap = function(newMap)
 {
-	console.time("Engine::_constructGeometry()");
-	console.timeStamp("Engine::_constructGeometry()");
+	console.assert(newMap, "Can't pass no map to useMap()");
+
 	const pickingMaterial = new THREE.MeshBasicMaterial({
 		vertexColors: THREE.VertexColors,
 		blending: THREE.NoBlending,
@@ -367,13 +369,24 @@ Engine.prototype._constructGeometry = function()
 		shininess: 0
 	});
 
-	const mapGeom = this._terrainMesh._geometry;
-	const pickingGeom = this._terrainMesh._pickingGeometry;
+	const mapGeom = newMap.getMesh()._geometry;
+	const pickingGeom = newMap.getMesh()._pickingGeometry;
 
-	const drawnObject = new THREE.Mesh(mapGeom, defaultMaterial);
-	this._scene.add(drawnObject);
-	this._pickingScene.add(new THREE.Mesh(pickingGeom, pickingMaterial));
-	console.timeEnd("Engine::_constructGeometry()");
+	this._currentMapSceneObject = new THREE.Mesh(mapGeom, defaultMaterial);
+	this._scene.add(this._currentMapSceneObject);
+	this._currentMapPickingSceneObject =
+		new THREE.Mesh(pickingGeom, pickingMaterial);
+	this._pickingScene.add(this._currentMapPickingSceneObject);
+
+	this._currentMap = newMap;
+};
+
+Engine.prototype.unloadCurrentMap = function()
+{
+	this._scene.remove(this._currentMapSceneObject);
+	this._pickingScene.remove(this._currentMapPickingSceneObject);
+	this._currentMapSceneObject = null;
+	this._currentMapPickingSceneObject = null;
 };
 
 /**
@@ -412,6 +425,13 @@ Engine.prototype._constructRenderer = function()
  */
 Engine.prototype._pick = function()
 {
+	if (!this._currentMap)
+	{
+		this._pickStateDirty = false;
+		this._broadcastNextPick = false;
+		return;
+	}
+
 	//render the picking scene off-screen
 	this._renderer.render(this._pickingScene, this._camera, this._pickingTexture);
 	//create buffer for reading single pixel
@@ -432,7 +452,7 @@ Engine.prototype._pick = function()
 	if (this._broadcastNextPick)
 	{
 		this._broadcastNextPick = false;
-		this._lastPick = id > 0 ? this._terrain.tileForID(id - 1) : null;
+		this._lastPick = id > 0 ? this._currentMap.tileForID(id - 1) : null;
 		emit("engine.pick", [this._lastPick]);
 		return;
 	}
@@ -449,7 +469,7 @@ Engine.prototype._pick = function()
 		return;
 	}
 
-	const picked = this._terrain.tileForID(id - 1);
+	const picked = this._currentMap.tileForID(id - 1);
 
 	if (lp && picked.equals(lp))
 	{
@@ -699,3 +719,4 @@ Engine.prototype._updateCameraFacingDirection = function()
 		emit("engine.camera.facing", [this._cameraFacingDirection]);
 	}
 };
+

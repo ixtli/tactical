@@ -7,14 +7,16 @@ export const TILE_HEIGHT = 1;
 
 function _applyVertColors(geom, color)
 {
-	geom.faces.forEach((f) =>
+	const faces = geom.faces;
+	const len = faces.length;
+	for (let i = 0; i < len; i++)
 	{
-		let n = f instanceof THREE.Face3 ? 3 : 4;
-		for (let j = 0; j < n; j++)
+		let face = faces[i];
+		for (let j = 0; j < 3; j++)
 		{
-			f.vertexColors[j] = color;
+			face.vertexColors[j] = color;
 		}
-	});
+	}
 }
 
 /**
@@ -24,8 +26,19 @@ function _applyVertColors(geom, color)
  */
 export default function TerrainMapMesh(mapData)
 {
-	this._geometry = null;
-	this._pickingGeometry = null;
+	/**
+	 *
+	 * @type {BufferGeometry}
+	 * @private
+	 */
+	this._geometry = new THREE.BufferGeometry();
+
+	/**
+	 *
+	 * @type {BufferGeometry}
+	 * @private
+	 */
+	this._pickingGeometry = new THREE.BufferGeometry();
 
 	/**
 	 *
@@ -34,6 +47,11 @@ export default function TerrainMapMesh(mapData)
 	 */
 	this._map = mapData;
 }
+
+TerrainMapMesh.prototype.init = function()
+{
+
+};
 
 TerrainMapMesh.prototype.destroy = function()
 {
@@ -70,6 +88,7 @@ TerrainMapMesh.prototype.regenerate = function()
 	const data = this._map.getData();
 
 	let generated = 0;
+	let position = new THREE.Vector3();
 
 	console.time("TerrainMap::regenerateGeometry()");
 	let zOffset = 0;
@@ -92,14 +111,12 @@ TerrainMapMesh.prototype.regenerate = function()
 
 				generated++;
 
-				let position = new THREE.Vector3();
 				position.x = x * TILE_WIDTH;
-				position.y = y * TILE_WIDTH;
+				position.y = y * TILE_HEIGHT;
 				position.z = z * TILE_WIDTH;
 				matrix.compose(position, quaternion, scale);
 				// give the geom's vertices a random color, to be displayed
-				let c = color.setHSL(0.3, Math.random(), 0.5);
-				_applyVertColors(boxGeom, c);
+				_applyVertColors(boxGeom, color.setHSL(0.3, Math.random(), 0.5));
 				newGeometry.merge(boxGeom, matrix);
 
 				// +1 because zero indicates no object present
@@ -109,10 +126,20 @@ TerrainMapMesh.prototype.regenerate = function()
 			}
 		}
 	}
+
 	console.timeEnd("TerrainMap::regenerateGeometry()");
 	console.debug("Generated", generated, "tiles.");
 
-	this._geometry = newGeometry;
-	this._pickingGeometry = pickingGeom;
+	console.time("TerrainMap::generateBufferGeometry");
+	newGeometry.mergeVertices();
+	pickingGeom.mergeVertices();
+	this._geometry.dispose();
+	this._geometry.fromGeometry(newGeometry);
+	this._pickingGeometry.dispose();
+	this._pickingGeometry.fromGeometry(pickingGeom);
+	console.timeEnd("TerrainMap::generateBufferGeometry");
+
+	newGeometry.dispose();
+	pickingGeom.dispose();
 };
 
