@@ -18,6 +18,7 @@ export const WEST = Symbol("west");
 
 const CAMERA_NEAR = 0.1;
 const CAMERA_FAR = 5000;
+const SELECT_SIZE = 1000;
 
 /**
  *
@@ -54,6 +55,20 @@ export default function Engine(container, options)
 			CAMERA_NEAR,
 			CAMERA_FAR,
 			this._rendererOptions);
+
+	/**
+	 *
+	 * @type {Number}
+	 * @private
+	 */
+	this._windowWidth = window.innerWidth;
+
+	/**
+	 *
+	 * @type {Number}
+	 * @private
+	 */
+	this._windowHeight = window.innerHeight;
 
 	/**
 	 *
@@ -116,7 +131,7 @@ export default function Engine(container, options)
 	 * @type {number}
 	 * @private
 	 */
-	this._aspectRatio = window.innerWidth / window.innerHeight;
+	this._aspectRatio = this._windowWidth / this._windowHeight;
 
 	/**
 	 *
@@ -229,6 +244,31 @@ export default function Engine(container, options)
 	 * @private
 	 */
 	this._currentMapPickingSceneObject = null;
+
+	/**
+	 *
+	 * @type {Mesh}
+	 * @private
+	 */
+	this._selectionPlaneMesh =
+		new THREE.Mesh(new THREE.PlaneBufferGeometry(SELECT_SIZE, SELECT_SIZE),
+			new THREE.MeshBasicMaterial({color: 0x202020, visible: false}));
+
+	/**
+	 * If true and mouseover selection fails to hit a tile, try to select an
+	 * empty tile where y = 0;
+	 * @type {boolean}
+	 * @private
+	 */
+	this._selectFromPlane = true;
+
+	/**
+	 *
+	 * @type {Raycaster}
+	 * @private
+	 */
+	this._raycaster = new THREE.Raycaster();
+
 }
 
 Engine.prototype.init = function()
@@ -282,14 +322,12 @@ Engine.prototype.pickAtCoordinates = function(x, y, force)
 
 Engine.prototype.getSceneWidth = function()
 {
-	const w = this._currentMap ? this._currentMap.width() : 1;
-	return w * TILE_WIDTH + 50;
+	return 25 * TILE_WIDTH * 4;
 };
 
 Engine.prototype.getSceneHeight = function()
 {
-	const h = this._currentMap ? this._currentMap.height() : 1;
-	return h * TILE_HEIGHT + 50;
+	return 25 * TILE_HEIGHT * 4;
 };
 
 /**
@@ -327,7 +365,7 @@ Engine.prototype._setupScene = function()
 {
 	this.setBackgroundColor(new THREE.Color(0x8BFFF7));
 	this._pickingTexture =
-		new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+		new THREE.WebGLRenderTarget(this._windowWidth, this._windowHeight);
 	this._pickingTexture.stencilBuffer = false;
 	this._pickingTexture.texture.minFilter = THREE.LinearFilter;
 
@@ -336,16 +374,19 @@ Engine.prototype._setupScene = function()
 	light.position.set(0, 500, 2000);
 	this._scene.add(light);
 
-	/**
-	 const gridHelper = new THREE.GridHelper(100, 100, "red", "gray");
-	 gridHelper.position.x = -0.5;
-	 gridHelper.position.y = -0.5;
-	 gridHelper.position.z = -0.5;
-	 this._scene.add(gridHelper);
+	const gridSize = 10;
+	const gridHelper = new THREE.GridHelper(gridSize, gridSize, "red", "gray");
+	gridHelper.position.x = gridSize / 2 - 0.5;
+	gridHelper.position.y = -0.5;
+	gridHelper.position.z = gridSize / 2 - 0.5;
+	this._scene.add(gridHelper);
 
-	 const axisHelper = new THREE.AxisHelper(5);
-	 this._scene.add(axisHelper);
-	 */
+	this._scene.add(new THREE.AxisHelper(5));
+
+	// Rotate so it "lays flat" on the x,z plane and so that the top face
+	// is pointing up.
+	this._selectionPlaneMesh.rotateX(THREE.Math.degToRad(-90));
+	this._scene.add(this._selectionPlaneMesh);
 };
 
 /**
@@ -415,7 +456,7 @@ Engine.prototype._constructRenderer = function()
 {
 	window.devicePixelRatio = window.devicePixelRatio || 1;
 	this._renderer.setPixelRatio(window.devicePixelRatio);
-	this._renderer.setSize(window.innerWidth, window.innerHeight);
+	this._renderer.setSize(this._windowWidth, this._windowHeight);
 	this._container.appendChild(this._renderer.domElement);
 };
 
@@ -449,35 +490,45 @@ Engine.prototype._pick = function()
 	let id = ( PICK_PIXEL_BUFFER[0] << 16 ) | ( PICK_PIXEL_BUFFER[1] << 8 ) |
 					 ( PICK_PIXEL_BUFFER[2] );
 
-	if (this._broadcastNextPick)
+	// Is the mouse pointing at an object in the scene?
+	let found = id > 0 ? this._currentMap.tileForID(id - 1) : null;
+
+	if (found)
 	{
-		this._broadcastNextPick = false;
-		this._lastPick = id > 0 ? this._currentMap.tileForID(id - 1) : null;
-		emit("engine.pick", [this._lastPick]);
-		return;
+		// If so, get the index of the tile in the map
+		found = this._currentMap.tileForID(id - 1);
 	}
-
-	let lp = this._lastPick;
-
-	if (!id)
+	else if (!found && this._selectFromPlane)
 	{
-		if (lp)
+		// If not, see what tile it WOULD be pointing at on the x,z plane
+		const nn = this._nextPickCoordinates.x / this._windowWidth * 2 - 1;
+		const ny = -(this._nextPickCoordinates.y / this._windowHeight) * 2 + 1;
+		this._raycaster.setFromCamera(new THREE.Vector2(nn, ny), this._camera);
+		let intersects = this._raycaster.intersectObject(this._selectionPlaneMesh);
+		if (intersects.length)
 		{
-			emit("engine.pick", [null]);
-			this._lastPick = null;
+			let uv = intersects[0].uv;
+			uv.x = Math.floor(uv.x * SELECT_SIZE) - SELECT_SIZE / 2;
+			uv.y = Math.floor((1-uv.y) * SELECT_SIZE) - SELECT_SIZE / 2;
+			// noinspection JSSuspiciousNameCombination
+			found = new THREE.Vector3(uv.x, 0, uv.y);
 		}
-		return;
 	}
 
-	const picked = this._currentMap.tileForID(id - 1);
+	const lp = this._lastPick;
 
-	if (lp && picked.equals(lp))
+	// If both exist, change only if they're not equal
+	// If they dont both exist, change only if one exists and the other doesn't
+	const delta = found && lp ? found.equals(lp) : !!(found || lp);
+
+	if (!delta && !this._broadcastNextPick)
 	{
 		return;
 	}
 
-	this._lastPick = picked;
-	emit("engine.pick", [this._lastPick]);
+	// this._broadcastNextPick = false;
+	emit("engine.pick", [found]);
+	this._lastPick = found;
 };
 
 /**
@@ -486,8 +537,8 @@ Engine.prototype._pick = function()
  */
 Engine.prototype._onWindowResize = function()
 {
-	const width = window.innerWidth;
-	const height = window.innerHeight;
+	const width = this._windowWidth = window.innerWidth;
+	const height = this._windowHeight = window.innerHeight;
 	this._aspectRatio = width / height;
 	console.debug("Window resize", width, "x", height);
 	this._updateCameraFrustum();

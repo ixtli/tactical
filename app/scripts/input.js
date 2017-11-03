@@ -184,11 +184,11 @@ InputController.prototype.onMouseUp = function(event)
  */
 InputController.prototype.onMouseMove = function(event)
 {
-	this._engine.pickAtCoordinates(event.clientX, event.clientY);
-
 	if (this._mouseDown)
 	{
 		emit("input.drag", [event.clientX, event.clientY]);
+	} else {
+		this._engine.pickAtCoordinates(event.clientX, event.clientY);
 	}
 };
 

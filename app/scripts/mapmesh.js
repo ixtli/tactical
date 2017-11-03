@@ -70,6 +70,7 @@ TerrainMapMesh.prototype.destroy = function()
 
 TerrainMapMesh.prototype.regenerate = function()
 {
+	console.time("TerrainMap::regenerate()");
 	const newGeometry = new THREE.Geometry();
 	const pickingGeom = new THREE.Geometry();
 	const d = this._map.depth();
@@ -90,7 +91,6 @@ TerrainMapMesh.prototype.regenerate = function()
 	let generated = 0;
 	let position = new THREE.Vector3();
 
-	console.time("TerrainMap::regenerateGeometry()");
 	let zOffset = 0;
 	let offset = 0;
 	for (let z = 0; z < d; z++)
@@ -126,18 +126,12 @@ TerrainMapMesh.prototype.regenerate = function()
 			}
 		}
 	}
-	console.timeEnd("TerrainMap::regenerateGeometry()");
-
-	console.debug("Generated", generated, "tiles.");
-
-	console.time("TerrainMap::generateBufferGeometry");
 	newGeometry.mergeVertices();
 	pickingGeom.mergeVertices();
 	this._geometry.fromGeometry(newGeometry);
 	this._pickingGeometry.fromGeometry(pickingGeom);
-	console.timeEnd("TerrainMap::generateBufferGeometry");
-
-	newGeometry.dispose();
-	pickingGeom.dispose();
+	this._geometry.computeBoundingSphere();
+	this._pickingGeometry.computeBoundingSphere();
+	console.timeEnd("TerrainMap::regenerate()");
 };
 
