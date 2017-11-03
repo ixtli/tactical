@@ -84,7 +84,7 @@ export default function InputController(engine)
 	 * @type {Vector3}
 	 * @private
 	 */
-	this._selection = new THREE.Vector3();
+	this._primarySelection = new THREE.Vector3();
 
 	/**
 	 *

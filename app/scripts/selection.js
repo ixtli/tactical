@@ -1,7 +1,32 @@
 import * as THREE from "../../bower_components/three.js/build/three.module";
 import Engine, {EAST, NORTH, SOUTH, WEST} from "./engine"; // jshint ignore:line
-import {TILE_WIDTH, TILE_HEIGHT} from "./mapmesh";
+import {TILE_HEIGHT, TILE_WIDTH} from "./mapmesh";
 import {emit, subscribe, unsubscribe} from "./bus";
+import generateFSM from "./state_machine";
+
+/**
+ *
+ * @type {number}
+ */
+const HIGHLIGHT_BOX_COLOR = 0xffff00;
+
+/**
+ *
+ * @type {number}
+ */
+const PRIMARY_SELECTION_BOX_COLOR = 0x2222ff;
+
+/**
+ *
+ * @type {number}
+ */
+const SECONDARY_SELECTION_BOX_COLOR = 0x22ff22;
+
+const NO_SELECTION = Symbol("NO_SELECTION");
+
+const PRIMARY_SELECTION = Symbol("PRIMARY_SELECTION");
+
+const SECONDARY_SELECTION = Symbol("SECONDARY_SELECTION");
 
 /**
  *
@@ -10,14 +35,26 @@ import {emit, subscribe, unsubscribe} from "./bus";
  */
 export default function SelectionManager(graphicsEngine)
 {
+	/**
+	 *
+	 * @type {Engine}
+	 * @private
+	 */
 	this._engine = graphicsEngine;
 
 	/**
 	 *
-	 * @type {Vector3}
+	 * @type {null|Vector3}
 	 * @private
 	 */
-	this._selection = new THREE.Vector3();
+	this._primarySelection = null;
+
+	/**
+	 *
+	 * @type {null|Vector3}
+	 * @private
+	 */
+	this._secondarySelection = null;
 
 	/**
 	 *
@@ -31,7 +68,14 @@ export default function SelectionManager(graphicsEngine)
 	 * @type {Mesh}
 	 * @private
 	 */
-	this._selectionBox = new THREE.Mesh();
+	this._primarySelectionBox = new THREE.Mesh();
+
+	/**
+	 *
+	 * @type {Mesh}
+	 * @private
+	 */
+	this._secondarySelectionBox = new THREE.Mesh();
 
 	/**
 	 *
@@ -46,14 +90,7 @@ export default function SelectionManager(graphicsEngine)
 	 * @private
 	 */
 	this._highlightBoxGeometry =
-		new THREE.BoxGeometry(TILE_WIDTH, TILE_HEIGHT, TILE_WIDTH);
-
-	/**
-	 *
-	 * @type {Vector3}
-	 * @private
-	 */
-	this._highlightBoxCenter = this._highlightBoxGeometry.center();
+		new THREE.BoxBufferGeometry(TILE_WIDTH, TILE_HEIGHT, TILE_WIDTH);
 
 	/**
 	 *
@@ -123,33 +160,88 @@ export default function SelectionManager(graphicsEngine)
 	 * @type {Vector3}
 	 * @private
 	 */
-	this._facingModifiers = new THREE.Vector3(1,1,1);
+	this._facingModifiers = new THREE.Vector3(1, 1, 1);
+
+	const stateMap = {
+		[NO_SELECTION]: {
+			enter: this.deselect,
+			leave: null,
+			from: new Set([PRIMARY_SELECTION, SECONDARY_SELECTION]),
+			to: new Set([PRIMARY_SELECTION])
+		},
+		[PRIMARY_SELECTION]: {
+			enter: null,
+			leave: null,
+			from: new Set([NO_SELECTION, SECONDARY_SELECTION]),
+			to: new Set([NO_SELECTION, SECONDARY_SELECTION])
+		},
+		[SECONDARY_SELECTION]: {
+			enter: null,
+			leave: null,
+			from: new Set([PRIMARY_SELECTION]),
+			to: new Set([NO_SELECTION, PRIMARY_SELECTION])
+		}
+	};
+
+	const [mutate, getter] = generateFSM(this, stateMap, NO_SELECTION, "select");
+
+	/**
+	 * @type {Function}
+	 */
+	Object.defineProperty(this, "changeSelectionState", {
+		enumerable: false,
+		configurable: false,
+		writable: false,
+		value: mutate
+	});
+
+	/**
+	 * @type {Function}
+	 */
+	Object.defineProperty(this, "getSelectionState", {
+		enumerable: false,
+		configurable: false,
+		writable: false,
+		value: getter
+	});
 }
 
 SelectionManager.prototype.init = function()
 {
 	this._highlightBox =
 		new THREE.Mesh(this._highlightBoxGeometry, new THREE.MeshLambertMaterial({
-			transparent: true, opacity: 0.5, color: 0xffff00
+			transparent: true, opacity: 0.5, color: HIGHLIGHT_BOX_COLOR
 		}));
 	this._highlightBox.scale.add(this._offset);
-	this._selectionBox =
+	this._primarySelectionBox =
 		new THREE.Mesh(this._highlightBoxGeometry, new THREE.MeshLambertMaterial({
-			transparent: true, opacity: 0.5, color: 0x2222ff
+			transparent: true, opacity: 0.5, color: PRIMARY_SELECTION_BOX_COLOR
 		}));
-	this._selectionBox.scale.add(this._offset);
+	this._primarySelectionBox.scale.add(this._offset);
+
+	this._secondarySelectionBox =
+		new THREE.Mesh(this._highlightBoxGeometry,
+			new THREE.MeshLambertMaterial({
+				transparent: true,
+				opacity: 0.5,
+				color: SECONDARY_SELECTION_BOX_COLOR
+			}));
+
+	this._primarySelectionBox.visible = false;
+	this._secondarySelectionBox.visible = false;
 
 	this._subscribe();
-	this._engine.addObjectToScene(this._selectionBox);
+	this._engine.addObjectToScene(this._primarySelectionBox);
 	this._engine.addObjectToScene(this._highlightBox);
-
+	this._engine.addObjectToScene(this._secondarySelectionBox);
 };
 
 SelectionManager.prototype.destroy = function()
 {
 	this._unsubscribe();
-	this._engine.removeObjectFromScene(this._selectionBox);
+	this._engine.removeObjectFromScene(this._primarySelectionBox);
 	this._engine.removeObjectFromScene(this._highlightBox);
+	this._engine.removeObjectFromScene(this._secondarySelectionBox);
 };
 
 SelectionManager.prototype._subscribe = function()
@@ -178,9 +270,22 @@ SelectionManager.prototype._unsubscribe = function()
 	unsubscribe("input.wheel", this, this._onWheel);
 };
 
+SelectionManager.prototype.deselect = function()
+{
+	this._primarySelection = null;
+	this._secondarySelection = null;
+	this._primarySelectionBox.visible = false;
+	this._secondarySelectionBox.visible = false;
+};
+
+/**
+ *
+ * @param {Symbol} newDirection
+ * @private
+ */
 SelectionManager.prototype._facingChange = function(newDirection)
 {
-	this._facingModifiers.set(1,1,1);
+	this._facingModifiers.set(1, 1, 1);
 	switch (newDirection)
 	{
 		case NORTH:
@@ -273,14 +378,14 @@ SelectionManager.prototype._engineHasPicked = function(vec)
 	{
 		if (vec)
 		{
-			this._selectionBox.visible = true;
-			this._selection = vec;
+			this._primarySelectionBox.visible = true;
+			this._primarySelection = vec;
 			this.selectTile(vec);
 			this._engine.lookAt(vec, 250);
 		}
 		else
 		{
-			this._selectionBox.visible = false;
+			this._primarySelectionBox.visible = false;
 		}
 
 		this._nextPickSelects = false;
@@ -302,9 +407,9 @@ SelectionManager.prototype._engineHasPicked = function(vec)
  */
 SelectionManager.prototype.selectTile = function(vec)
 {
-	this._selectionBox.position.copy(vec);
-	this._selectionBox.position.multiplyScalar(TILE_WIDTH);
-	this._selectionBox.position.add(new THREE.Vector3(0, 0, 0));
+	this._primarySelectionBox.position.copy(vec);
+	this._primarySelectionBox.position.multiplyScalar(TILE_WIDTH);
+	this._primarySelectionBox.position.add(new THREE.Vector3(0, 0, 0));
 	emit("selection.tile", [vec]);
 };
 
@@ -335,31 +440,34 @@ SelectionManager.prototype._keyPress = function(event)
 			this._engine.orbit(500, true);
 			break;
 		case "w":
-			this._selection.z++;
+			this._primarySelection.z++;
 			updateSelection = true;
 			break;
 		case "a":
-			this._selection.x++;
+			this._primarySelection.x++;
 			updateSelection = true;
 			break;
 		case "s":
-			this._selection.z--;
+			this._primarySelection.z--;
 			updateSelection = true;
 			break;
 		case "d":
-			this._selection.x--;
+			this._primarySelection.x--;
 			updateSelection = true;
 			break;
 		case "r":
-			this._selection.y++;
+			this._primarySelection.y++;
 			updateSelection = true;
 			break;
 		case "f":
-			this._selection.y--;
+			this._primarySelection.y--;
 			updateSelection = true;
 			break;
+		case "h":
+			console.error("This should be a help dialog.");
+			break;
 		case " ":
-			emit("editor.tile.toggle", [this._selection]);
+			emit("editor.tile.toggle", [this._primarySelection]);
 			break;
 		default:
 			console.log(event.key);
@@ -368,8 +476,8 @@ SelectionManager.prototype._keyPress = function(event)
 
 	if (updateSelection)
 	{
-		this.selectTile(this._selection);
-		this._engine.lookAt(this._selection, 250);
+		this.selectTile(this._primarySelection);
+		this._engine.lookAt(this._primarySelection, 250);
 	}
 
 	event.preventDefault();
@@ -420,7 +528,11 @@ SelectionManager.prototype._keyDown = function(event)
 		case "Shift":
 			this._shiftDown = true;
 			break;
+		case "Escape":
+			this.changeSelectionState(NO_SELECTION);
+			break;
 		default:
+			console.log(event);
 			return;
 	}
 };

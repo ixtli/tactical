@@ -381,7 +381,7 @@ Engine.prototype._setupScene = function()
 	gridHelper.position.z = gridSize / 2 - 0.5;
 	this._scene.add(gridHelper);
 
-	this._scene.add(new THREE.AxisHelper(5));
+	this._scene.add(new THREE.AxisHelper(10));
 
 	// Rotate so it "lays flat" on the x,z plane and so that the top face
 	// is pointing up.

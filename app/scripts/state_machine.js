@@ -2,6 +2,14 @@
  * @typedef {{enter: Function, leave: Function, from: Set, to: Set}} StateDesc
  */
 
+import {emit} from "./bus";
+
+/**
+ *
+ * @type {Symbol}
+ */
+const TRANSITION_STATE = Symbol("TRANSITION_STATE");
+
 /**
  *
  * @param {Symbol} sym
@@ -18,7 +26,7 @@ function stringifySymbol(sym)
  * @param {Object.<Symbol, StateDesc>} stateMap
  * @param {Symbol} initial
  * @param {String} name
- * @returns {Function}
+ * @returns {[Function, Function]}
  */
 export default function generateFSM(context, stateMap, initial, name)
 {
@@ -36,6 +44,7 @@ export default function generateFSM(context, stateMap, initial, name)
 			return context;
 		}
 
+		const oldState = currentState;
 		const tName = stringifySymbol(newState);
 		const cName = stringifySymbol(currentState);
 		const target = stateMap[newState];
@@ -59,6 +68,9 @@ export default function generateFSM(context, stateMap, initial, name)
 			console.debug(ts);
 		}
 
+		currentState = TRANSITION_STATE;
+		emit(name + "." + cName + ".leave", [oldState]);
+
 		ts = `${name}:State:Enter:${tName}`;
 		if (target.enter)
 		{
@@ -72,20 +84,13 @@ export default function generateFSM(context, stateMap, initial, name)
 		}
 
 		currentState = newState;
+		emit(name + "." + tName + ".enter", [currentState]);
 
 		return context;
 	};
 
-	/**
-	 * @type {Function}
-	 */
-	Object.defineProperty(ret, "getCurrentState", {
-		enumerable: false,
-		configurable: false,
-		writeable: false,
-		value: () => { return currentState; }
-	});
-
-	return ret;
+	return [
+		ret, () => currentState ]
+	;
 }
 

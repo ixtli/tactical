@@ -124,6 +124,8 @@ export default function TacticalEngine(container)
 		}
 	};
 
+	const [mutate, getter] = generateFSM(this, stateMap, NO_STATE, "TE");
+
 	/**
 	 * @type {Function}
 	 */
@@ -131,7 +133,17 @@ export default function TacticalEngine(container)
 		enumerable: false,
 		configurable: false,
 		writable: false,
-		value: generateFSM(this, stateMap, NO_STATE, "TE")
+		value: mutate
+	});
+
+	/**
+	 * @type {Function}
+	 */
+	Object.defineProperty(this, "getState", {
+		enumerable: false,
+		configurable: false,
+		writable: false,
+		value: getter
 	});
 }
 
@@ -208,10 +220,10 @@ TacticalEngine.prototype._controlKey = function(event)
 {
 	switch(event.key)
 	{
-		case "g":
+		case "1":
 			this.changeState(GAME);
 			break;
-		case "e":
+		case "2":
 			this.changeState(EDITOR);
 			break;
 		default:
