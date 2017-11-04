@@ -11,7 +11,7 @@ body {
 
 .invisible
 {
-	display: none;
+	display: none !important;
 }
 
 #hud-container
@@ -52,12 +52,12 @@ body {
 .widget-container.status-line
 {
 	width: 100%;
-	height: 28px;
+	height: 25px;
 	background-color: rgba(0,0,0,.8);
 	display: inline-block;
 	margin-top: 5px;
 	margin-bottom: -3px;
-	padding: 0;
+	padding: 0 0 0 42px;
 
 	*
 	{
@@ -66,12 +66,14 @@ body {
 
 	div#logo
 	{
-		padding-left: 3px;
-		padding-right: 3px;
-		margin-right: 10px;
+		position: absolute;
+		font-size: 32px;
+		left: 3px;
+		bottom: -5px;
+		width: 32px;
 	}
 
-	h1
+	h1, h2
 	{
 		-webkit-text-stroke: 0px;
 		color: white;
@@ -94,14 +96,43 @@ body {
 		color: #959595;
 	}
 
-	h1.path-component.primary
+	.primary
 	{
 		color: cornflowerblue;
 	}
 
-	h1.path-component.secondary
+	.secondary
 	{
 		color: greenyellow;
+	}
+
+	.primary-bg
+	{
+		background-color: transparentize(cornflowerblue, 0.75);
+	}
+
+	.secondary-bg
+	{
+		background-color: transparentize(greenyellow, 0.75);
+	}
+
+	div#selection-display
+	{
+		background-color: rgba(255,255,255, .1);
+		margin-left: 10px;
+
+		h2
+		{
+			font-size: 14px;
+			font-weight: 100;
+		}
+
+		p
+		{
+			font-weight: 900;
+			font-size: 14px;
+			padding: 2px;
+		}
 	}
 }
 

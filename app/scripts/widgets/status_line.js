@@ -4,14 +4,15 @@ import WidgetBase from "./base_widget";
 import {
 	NO_SELECTION, PRIMARY_SELECTION, SECONDARY_SELECTION
 } from "../selection";
+import {hideElement, showElement} from "../dom_util";
 
 const SELECTION_STATE = {
 	[NO_SELECTION]: {
-		text: "none"
+		text: "none", showSelectionDisplay: false
 	}, [PRIMARY_SELECTION]: {
-		text: "primary"
+		text: "primary", showSelectionDisplay: true
 	}, [SECONDARY_SELECTION]: {
-		text: "secondary"
+		text: "secondary", showSelectionDisplay: true
 	}
 };
 
@@ -42,6 +43,34 @@ export default function StatusLine()
 	 * @type {Element}
 	 * @private
 	 */
+	this._selectionGroup = document.createElement("div");
+
+	/**
+	 *
+	 * @type {Element}
+	 * @private
+	 */
+	this._selectionGroupSeparator = document.createElement("p");
+
+	/**
+	 *
+	 * @type {Element}
+	 * @private
+	 */
+	this._primarySelectionDisplay = document.createElement("h2");
+
+	/**
+	 *
+	 * @type {Element}
+	 * @private
+	 */
+	this._secondarySelectionDisplay = document.createElement("h2");
+
+	/**
+	 *
+	 * @type {Element}
+	 * @private
+	 */
 	this._pathContainer = document.createElement("div");
 }
 
@@ -63,9 +92,25 @@ StatusLine.prototype.init = function()
 	this._addPathComponent(this._selectionMode);
 
 	this._container.appendChild(this._pathContainer);
+
+	this._selectionGroup.id = "selection-display";
+	this._primarySelectionDisplay.classList.add("invisible");
+	this._selectionGroupSeparator.innerHTML = ":";
+	this._primarySelectionDisplay.classList.add("primary-bg");
+	this._secondarySelectionDisplay.classList.add("secondary-bg");
+	this._selectionGroup.appendChild(this._primarySelectionDisplay);
+	this._selectionGroup.appendChild(this._selectionGroupSeparator);
+	this._selectionGroup.appendChild(this._secondarySelectionDisplay);
+	this._updateSelectionDisplay(null, null);
+	this._container.appendChild(this._selectionGroup);
+
 	this._container.classList.add("status-line");
 	subscribe("te.fsm.change", this, this._engineStateChange);
 	subscribe("select.fsm.change", this, this._selectionStateChange);
+	subscribe("select.primary.tile", this, this._primarySelectionChange);
+	subscribe("select.secondary.tile", this, this._secondarySelectionChange);
+	subscribe("select.primary.deselect", this, this._primarySelectionChange);
+	subscribe("select.secondary.deselect", this, this._secondarySelectionChange);
 };
 
 StatusLine.prototype.destroy = function()
@@ -73,6 +118,12 @@ StatusLine.prototype.destroy = function()
 	this._container.classList.remove("status-line");
 	unsubscribe("te.fsm.change", this, this._engineStateChange);
 	unsubscribe("select.fsm.change", this, this._selectionStateChange);
+	unsubscribe("select.primary.tile", this, this._primarySelectionChange);
+	unsubscribe("select.secondary.tile", this, this._secondarySelectionChange);
+	unsubscribe("select.primary.deselect", this, this._primarySelectionChange);
+	unsubscribe("select.secondary.deselect",
+		this,
+		this._secondarySelectionChange);
 
 	WidgetBase.prototype.destroy.call(this);
 };
@@ -122,6 +173,72 @@ StatusLine.prototype._selectionStateChange = function(previous, current)
 	{
 		elt.classList.remove(SELECTION_STATE[previous].text);
 	}
-	elt.classList.add(SELECTION_STATE[current].text);
-	elt.innerHTML =  SELECTION_STATE[current].text;
+	const nextState = SELECTION_STATE[current];
+	elt.classList.add(nextState.text);
+	elt.innerHTML = nextState.text;
+
+	if (nextState.showSelectionDisplay)
+	{
+		showElement(this._selectionGroup);
+	}
+	else
+	{
+		this._updateSelectionDisplay(null, null);
+		hideElement(this._selectionGroup);
+	}
+};
+
+/**
+ *
+ * @param {Vector3} primary
+ * @param {Vector3} secondary
+ * @private
+ */
+StatusLine.prototype._primarySelectionChange = function(primary, secondary)
+{
+	this._updateSelectionDisplay(primary, secondary);
+};
+
+/**
+ *
+ * @param {Vector3} primary
+ * @param {Vector3} secondary
+ * @private
+ */
+StatusLine.prototype._secondarySelectionChange = function(primary, secondary)
+{
+	this._updateSelectionDisplay(primary, secondary);
+};
+
+/**
+ *
+ * @param {Vector3} primary
+ * @param {Vector3} secondary
+ * @private
+ */
+StatusLine.prototype._updateSelectionDisplay = function(primary, secondary)
+{
+	if (primary)
+	{
+		this._primarySelectionDisplay.innerHTML =
+			`${primary.x},${primary.y},${primary.z}`;
+		showElement(this._primarySelectionDisplay);
+	}
+	else
+	{
+		hideElement(this._primarySelectionDisplay);
+	}
+
+	if (secondary)
+	{
+		this._secondarySelectionDisplay.innerHTML =
+			`${secondary.x},${secondary.y},${secondary.z}`;
+		showElement(this._selectionGroupSeparator);
+		showElement(this._secondarySelectionDisplay);
+	}
+	else
+	{
+		hideElement(this._secondarySelectionDisplay);
+		hideElement(this._selectionGroupSeparator);
+	}
 };

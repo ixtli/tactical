@@ -209,6 +209,7 @@ TacticalEngine.prototype._enterEditorState = function()
 /**
  *
  * @param {KeyboardEvent} event
+ * @returns {boolean} true if the event was captured, otherwise not.
  * @private
  */
 TacticalEngine.prototype._controlKey = function(event)

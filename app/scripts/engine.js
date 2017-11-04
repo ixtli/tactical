@@ -284,6 +284,13 @@ export default function Engine(container, options)
 	 * @private
 	 */
 	this._mapBoundingCube = null;
+
+	/**
+	 *
+	 * @type {AxisHelper}
+	 * @private
+	 */
+	this._axisHelper = new THREE.AxisHelper(10);
 }
 
 Engine.prototype.init = function()
@@ -374,6 +381,16 @@ Engine.prototype._updateCameraFrustum = function()
 
 /**
  *
+ * @param {boolean} visible
+ */
+Engine.prototype.setAxisHelperVisible = function(visible)
+{
+	this._axisHelper.visible = visible;
+	emit("engine.axishelper.visibility", [visible]);
+};
+
+/**
+ *
  * @private
  */
 Engine.prototype._setupScene = function()
@@ -389,7 +406,8 @@ Engine.prototype._setupScene = function()
 	light.position.set(0, 500, 2000);
 	this._scene.add(light);
 
-	this._scene.add(new THREE.AxisHelper(10));
+	this._scene.add(this._axisHelper);
+	this.setAxisHelperVisible(true);
 
 	// Rotate so it "lays flat" on the x,z plane and so that the top face
 	// is pointing up.
@@ -491,6 +509,8 @@ Engine.prototype.resetCamera = function()
 Engine.prototype.unloadCurrentMap = function()
 {
 	this._scene.remove(this._currentMapSceneObject);
+	this._scene.remove(this._mapBoundingCube);
+	this._scene.remove(this._grid);
 	this._pickingScene.remove(this._currentMapPickingSceneObject);
 	this._currentMapSceneObject = null;
 	this._currentMapPickingSceneObject = null;

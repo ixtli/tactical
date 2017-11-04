@@ -444,7 +444,7 @@ SelectionManager.prototype.getCurrentSelectionVector = function()
 		case PRIMARY_SELECTION:
 			return this._primarySelection;
 		case SECONDARY_SELECTION:
-			return  this._secondarySelection;
+			return this._secondarySelection;
 	}
 };
 
@@ -459,7 +459,8 @@ SelectionManager.prototype.selectSecondary = function(vec)
 	this._secondarySelectionBox.position.add(new THREE.Vector3(0, 0, 0));
 	this._secondarySelectionBox.visible = true;
 	this._secondarySelection = vec;
-	emit("select.secondary.tile", [vec]);
+	emit("select.secondary.tile",
+		[this._primarySelection, this._secondarySelection]);
 };
 
 /**
@@ -473,7 +474,8 @@ SelectionManager.prototype.selectPrimary = function(vec)
 	this._primarySelectionBox.position.add(new THREE.Vector3(0, 0, 0));
 	this._primarySelectionBox.visible = true;
 	this._primarySelection = vec;
-	emit("select.primary.tile", [vec]);
+	emit("select.primary.tile",
+		[this._primarySelection, this._secondarySelection]);
 	this._engine.lookAt(vec, 250);
 };
 
@@ -499,14 +501,16 @@ SelectionManager.prototype.deselectSecondary = function()
 {
 	this._secondarySelectionBox.visible = false;
 	this._secondarySelection = null;
-	emit("select.secondary.deselect", []);
+	emit("select.secondary.deselect",
+		[this._primarySelection, this._secondarySelection]);
 };
 
 SelectionManager.prototype.deselectPrimary = function()
 {
 	this._primarySelectionBox.visible = false;
 	this._primarySelection = null;
-	emit("select.primary.deselect", []);
+	emit("select.primary.deselect",
+		[this._primarySelection, this._secondarySelection]);
 };
 
 /**
@@ -596,10 +600,10 @@ SelectionManager.prototype._keyPress = function(event)
 
 	if (updateSelection)
 	{
-		const curvec = this.getCurrentSelectionVector();
-		if (curvec)
+		const currentVector = this.getCurrentSelectionVector();
+		if (currentVector)
 		{
-			selectionDelta.add(curvec);
+			selectionDelta.add(currentVector);
 			this.select(selectionDelta);
 			this._engine.lookAt(selectionDelta, 250);
 		}
@@ -610,7 +614,7 @@ SelectionManager.prototype._keyPress = function(event)
 
 SelectionManager.prototype.toggleSelection = function()
 {
-	emit("select.primary.toggle", [this._primarySelection]);
+	emit("select.toggle", [this._primarySelection]);
 };
 
 /**

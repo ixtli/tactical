@@ -236,7 +236,7 @@ InputController.prototype.onKeyPress = function(event)
 		const len = results.length;
 		for (let i = 0; i < len; i++)
 		{
-			if (results[i])
+			if (!!results[i])
 			{
 				return;
 			}

@@ -54,12 +54,12 @@ export default function TerrainMap(w, h, d)
 TerrainMap.prototype.init = function()
 {
 	this._mesh.init();
-	subscribe("select.primary.toggle", this, this._toggleTile);
+	subscribe("select.toggle", this, this._toggleTile);
 };
 
 TerrainMap.prototype.destroy = function()
 {
-	unsubscribe("select.primary.toggle", this, this._toggleTile);
+	unsubscribe("select.toggle", this, this._toggleTile);
 	this._data = null;
 	this._mesh.destroy();
 };
