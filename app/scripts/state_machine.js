@@ -8,6 +8,18 @@ import {emit} from "./bus";
  *
  * @type {Symbol}
  */
+export const START = Symbol("FSM_START");
+
+/**
+ *
+ * @type {Symbol}
+ */
+export const END = Symbol("FSM_END");
+
+/**
+ *
+ * @type {Symbol}
+ */
 const TRANSITION_STATE = Symbol("TRANSITION_STATE");
 
 /**
@@ -15,7 +27,7 @@ const TRANSITION_STATE = Symbol("TRANSITION_STATE");
  * @param {Symbol} sym
  * @returns {string}
  */
-function stringifySymbol(sym)
+export function stringifySymbol(sym)
 {
 	return String(sym).slice(7, -1);
 }
@@ -24,13 +36,13 @@ function stringifySymbol(sym)
  *
  * @param {Object} context
  * @param {Object.<Symbol, StateDesc>} stateMap
- * @param {Symbol} initial
  * @param {String} name
+ * @param {Symbol?} initial
  * @returns {[Function, Function]}
  */
-export default function generateFSM(context, stateMap, initial, name)
+export default function generateFSM(context, stateMap, name, initial)
 {
-	let currentState = initial;
+	let currentState = initial || START;
 
 	/**
 	 *
@@ -39,6 +51,10 @@ export default function generateFSM(context, stateMap, initial, name)
 	 */
 	let ret = (newState) =>
 	{
+		console.assert(currentState !== END, "Attempt to transition from END.");
+
+		console.assert(newState !== START, "Attempt to transition to START.");
+
 		if (newState === currentState)
 		{
 			return context;
@@ -47,17 +63,23 @@ export default function generateFSM(context, stateMap, initial, name)
 		const oldState = currentState;
 		const tName = stringifySymbol(newState);
 		const cName = stringifySymbol(currentState);
-		const target = stateMap[newState];
-		const current = stateMap[currentState];
+		const target = newState === END ? null : stateMap[newState];
+		const current = currentState === START ? null : stateMap[currentState];
 
-		console.assert(current.to.has(newState),
-			`${name}: Can't transition from ${cName} to ${tName}`);
+		if (current !== null)
+		{
+			console.assert(current.to.has(newState),
+				`${name}: Can't transition from ${cName} to ${tName}`);
+		}
 
-		console.assert(target.from.has(currentState),
-			`${name}: Can't transition to ${tName} from ${cName}`);
+		if (target !== null)
+		{
+			console.assert(target.from.has(currentState),
+				`${name}: Can't transition to ${tName} from ${cName}`);
+		}
 
 		let ts = `${name}:State:Leave:${cName}`;
-		if (current.leave)
+		if (currentState !== START && current.leave)
 		{
 			console.time(ts);
 			current.leave.call(context, newState);
@@ -72,10 +94,10 @@ export default function generateFSM(context, stateMap, initial, name)
 		emit(name + "." + cName + ".leave", [oldState]);
 
 		ts = `${name}:State:Enter:${tName}`;
-		if (target.enter)
+		if (newState !== END && target.enter)
 		{
 			console.time(ts);
-			target.enter.call(context, currentState);
+			target.enter.call(context, oldState);
 			console.timeEnd(ts);
 		}
 		else
@@ -85,12 +107,13 @@ export default function generateFSM(context, stateMap, initial, name)
 
 		currentState = newState;
 		emit(name + "." + tName + ".enter", [currentState]);
+		emit(name + ".fsm.change", [oldState, currentState]);
 
 		return context;
 	};
 
 	return [
-		ret, () => currentState ]
-	;
+		ret, () => currentState
+	];
 }
 

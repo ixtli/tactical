@@ -4,14 +4,8 @@ import SelectionManager from "./selection";
 import EditorHUD from "./editor_hud";
 import HUD from "./hud"; // jshint ignore:line
 import {subscribe} from "./bus";
-import generateFSM from "./state_machine";
+import generateFSM, {START} from "./state_machine";
 import TerrainMap from "./map";
-
-/**
- *
- * @type {Symbol}
- */
-export const NO_STATE = Symbol("NO_STATE");
 
 /**
  *
@@ -99,13 +93,11 @@ export default function TacticalEngine(container)
 	 * @type {Object.<Symbol, StateDesc>}
 	 */
 	const stateMap = {
-		[NO_STATE]: {
-			enter: null, leave: null, from: new Set(), to: new Set([INIT])
-		}, [INIT]: {
+		[INIT]: {
 			enter: this._enterInitState,
 			leave: null,
-			from: new Set([NO_STATE]),
-			to: new Set([EDITOR])
+			from: new Set([START]),
+			to: new Set([EDITOR, GAME])
 		}, [EDITOR]: {
 			enter: this._enterEditorState,
 			leave: this._leaveEditorState,
@@ -124,7 +116,7 @@ export default function TacticalEngine(container)
 		}
 	};
 
-	const [mutate, getter] = generateFSM(this, stateMap, NO_STATE, "TE");
+	const [mutate, getter] = generateFSM(this, stateMap, "te");
 
 	/**
 	 * @type {Function}
@@ -186,11 +178,12 @@ TacticalEngine.prototype._leaveEditorState = function()
 {
 	this._selectionManager.destroy();
 	this._selectionManager = null;
-	this._currentHUD.destroy();
-	this._currentHUD = null;
 	this.engine.unloadCurrentMap();
 	this._currentTerrain.destroy();
 	this._currentTerrain = null;
+
+	this._currentHUD.destroy();
+	this._currentHUD = null;
 };
 
 /**
@@ -203,12 +196,14 @@ TacticalEngine.prototype._enterEditorState = function()
 	this._currentTerrain.init();
 	//this._currentTerrain.randomGround(25);
 	this._currentTerrain.getMesh().regenerate();
-	this.engine.useMap(this._currentTerrain);
-	this._selectionManager = new SelectionManager(this.engine);
-	this._selectionManager.init();
 	this._currentHUD = new EditorHUD();
 	this._currentHUD.init();
 	this.container.appendChild(this._currentHUD.layer);
+
+	this._selectionManager = new SelectionManager(this.engine);
+	this._selectionManager.init();
+
+	this.engine.useMap(this._currentTerrain);
 };
 
 /**

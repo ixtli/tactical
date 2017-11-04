@@ -9,12 +9,21 @@ body {
 	overflow: hidden;
 }
 
+.invisible
+{
+	display: none;
+}
+
 #hud-container
 {
 	position: absolute;
+	width: 100%;
 	bottom: 0;
 	left: 0;
+	margin: 0;
+	padding: 0;
 }
+
 
 .widget-container
 {
@@ -39,3 +48,60 @@ body {
 	margin: 0 0 -10px;
 	padding: 0;
 }
+
+.widget-container.status-line
+{
+	width: 100%;
+	height: 28px;
+	background-color: rgba(0,0,0,.8);
+	display: inline-block;
+	margin-top: 5px;
+	margin-bottom: -3px;
+	padding: 0;
+
+	*
+	{
+		display: inline-block;
+	}
+
+	div#logo
+	{
+		padding-left: 3px;
+		padding-right: 3px;
+		margin-right: 10px;
+	}
+
+	h1
+	{
+		-webkit-text-stroke: 0px;
+		color: white;
+		font-weight: 400;
+		font-size: 18px;
+		margin: 0;
+		display: inline-block;
+	}
+
+	p
+	{
+		margin: 0;
+		padding: 0 5px;
+		color: #959595;
+		font-size: 18px;
+	};
+
+	h1.path-component.none
+	{
+		color: #959595;
+	}
+
+	h1.path-component.primary
+	{
+		color: cornflowerblue;
+	}
+
+	h1.path-component.secondary
+	{
+		color: greenyellow;
+	}
+}
+

@@ -54,12 +54,12 @@ export default function TerrainMap(w, h, d)
 TerrainMap.prototype.init = function()
 {
 	this._mesh.init();
-	subscribe("editor.tile.toggle", this, this._toggleTile);
+	subscribe("select.primary.toggle", this, this._toggleTile);
 };
 
 TerrainMap.prototype.destroy = function()
 {
-	unsubscribe("editor.tile.toggle", this, this._toggleTile);
+	unsubscribe("select.primary.toggle", this, this._toggleTile);
 	this._data = null;
 	this._mesh.destroy();
 };
@@ -118,6 +118,22 @@ TerrainMap.prototype.randomGround = function(groundDepth)
 	}
 	console.timeEnd("TerrainMap::randomGround()");
 	console.debug("Generated map with", tileCount, "tiles.");
+};
+
+/**
+ *
+ * @param {Vector3} vec
+ */
+TerrainMap.prototype.inBounds = function(vec)
+{
+	if (vec.x < 0 || vec.y < 0 || vec.z < 0)
+	{
+		return false;
+	}
+
+	return !(vec.x >= this.width() || vec.y >= this.height() || vec.z >=
+					 this.width());
+
 };
 
 /**

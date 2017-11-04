@@ -254,13 +254,15 @@ export default function Engine(container, options)
 		new THREE.Mesh(new THREE.PlaneBufferGeometry(SELECT_SIZE, SELECT_SIZE),
 			new THREE.MeshBasicMaterial({color: 0x202020, visible: false}));
 
+	this._selectionPlaneMesh.position.addScalar(TILE_WIDTH / -2);
+
 	/**
 	 * If true and mouseover selection fails to hit a tile, try to select an
 	 * empty tile where y = 0;
 	 * @type {boolean}
 	 * @private
 	 */
-	this._selectFromPlane = true;
+	this._pickFromEmptySpaceAsFallback = true;
 
 	/**
 	 *
@@ -269,6 +271,12 @@ export default function Engine(container, options)
 	 */
 	this._raycaster = new THREE.Raycaster();
 
+	/**
+	 *
+	 * @type {GridHelper}
+	 * @private
+	 */
+	this._grid = new THREE.GridHelper(10, 10, "red", "gray");
 }
 
 Engine.prototype.init = function()
@@ -374,19 +382,22 @@ Engine.prototype._setupScene = function()
 	light.position.set(0, 500, 2000);
 	this._scene.add(light);
 
-	const gridSize = 10;
-	const gridHelper = new THREE.GridHelper(gridSize, gridSize, "red", "gray");
-	gridHelper.position.x = gridSize / 2 - 0.5;
-	gridHelper.position.y = -0.5;
-	gridHelper.position.z = gridSize / 2 - 0.5;
-	this._scene.add(gridHelper);
-
 	this._scene.add(new THREE.AxisHelper(10));
 
 	// Rotate so it "lays flat" on the x,z plane and so that the top face
 	// is pointing up.
 	this._selectionPlaneMesh.rotateX(THREE.Math.degToRad(-90));
 	this._scene.add(this._selectionPlaneMesh);
+};
+
+/**
+ *
+ * @param {boolean} visible
+ */
+Engine.prototype.gridVisible = function(visible)
+{
+	this._grid.visible = visible;
+	emit("engine.grid.visiblility", [visible]);
 };
 
 /**
@@ -419,7 +430,29 @@ Engine.prototype.useMap = function(newMap)
 		new THREE.Mesh(pickingGeom, pickingMaterial);
 	this._pickingScene.add(this._currentMapPickingSceneObject);
 
+	this._scene.remove(this._grid);
+	const mapSize = Math.max(newMap.width(), newMap.depth());
+	this._grid = new THREE.GridHelper(mapSize, mapSize, "red", "gray");
+	this._grid.position.x = mapSize / 2 - (TILE_WIDTH / 2);
+	this._grid.position.y = TILE_WIDTH / -2;
+	this._grid.position.z = mapSize / 2 - (TILE_WIDTH / 2);
+	this._scene.add(this._grid);
+	this.gridVisible(true);
+
 	this._currentMap = newMap;
+
+	this.resetCamera();
+};
+
+Engine.prototype.resetCamera = function()
+{
+	const map = this._currentMap;
+	this.orbitImmediate(45);
+	this.lookAt(new THREE.Vector3(Math.floor(map.width() / 2),
+		0,
+		Math.floor(map.height() / 2)), 0);
+	this.zoom(0, 0);
+	emit("engine.camera.reset", []);
 };
 
 Engine.prototype.unloadCurrentMap = function()
@@ -498,7 +531,7 @@ Engine.prototype._pick = function()
 		// If so, get the index of the tile in the map
 		found = this._currentMap.tileForID(id - 1);
 	}
-	else if (!found && this._selectFromPlane)
+	else if (!found && this._pickFromEmptySpaceAsFallback)
 	{
 		// If not, see what tile it WOULD be pointing at on the x,z plane
 		const nn = this._nextPickCoordinates.x / this._windowWidth * 2 - 1;
@@ -509,7 +542,7 @@ Engine.prototype._pick = function()
 		{
 			let uv = intersects[0].uv;
 			uv.x = Math.floor(uv.x * SELECT_SIZE) - SELECT_SIZE / 2;
-			uv.y = Math.floor((1-uv.y) * SELECT_SIZE) - SELECT_SIZE / 2;
+			uv.y = Math.floor((1 - uv.y) * SELECT_SIZE) - SELECT_SIZE / 2;
 			// noinspection JSSuspiciousNameCombination
 			found = new THREE.Vector3(uv.x, 0, uv.y);
 		}
@@ -519,14 +552,14 @@ Engine.prototype._pick = function()
 
 	// If both exist, change only if they're not equal
 	// If they dont both exist, change only if one exists and the other doesn't
-	const delta = found && lp ? found.equals(lp) : !!(found || lp);
+	const delta = found && lp ? !found.equals(lp) : !!(found || lp);
 
 	if (!delta && !this._broadcastNextPick)
 	{
 		return;
 	}
 
-	// this._broadcastNextPick = false;
+	this._broadcastNextPick = false;
 	emit("engine.pick", [found]);
 	this._lastPick = found;
 };
@@ -655,6 +688,23 @@ Engine.prototype.lookAt = function(target, ms)
 
 /**
  *
+ * @param {number} target
+ */
+Engine.prototype.orbitImmediate = function(target)
+{
+	if (this._orbitTween)
+	{
+		this._orbitTween.stop();
+	}
+
+	this._orbitTarget = target % 360;
+	this._cameraOrbitDegrees = this._orbitTarget;
+	this._updateCameraFacingDirection();
+	emit("engine.camera.orbit", [this._cameraOrbitDegrees]);
+};
+
+/**
+ *
  * @param {number} ms
  * @param {boolean} reverse
  */
@@ -771,3 +821,11 @@ Engine.prototype._updateCameraFacingDirection = function()
 	}
 };
 
+/**
+ *
+ * @returns {null|TerrainMap}
+ */
+Engine.prototype.getCurrentMap = function()
+{
+	return this._currentMap;
+};

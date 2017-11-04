@@ -92,12 +92,21 @@ export default function InputController(engine)
 	 * @private
 	 */
 	this._mouseDown = false;
+
+	/**
+	 *
+	 * @type {boolean}
+	 * @private
+	 */
+	this._contextMenuBlocked = false;
 }
 
 InputController.prototype.init = function()
 {
 	console.info("Initializing input subsystem.");
 	this.registerEventHandlers();
+	this.blockContextMenu(true);
+
 };
 
 InputController.prototype.destroy = function()
@@ -137,6 +146,32 @@ InputController.prototype.deRegisterEventHandlers = function()
 	window.removeEventListener("keyup", this._keyUpFunction);
 	window.removeEventListener("keydown", this._keyDownFunction);
 	window.removeEventListener("keypress", this._keyPressFunction);
+
+	this.blockContextMenu(false);
+};
+
+/**
+ *
+ * @param {MouseEvent} event
+ */
+function blockContextMenu(event)
+{
+	event.preventDefault();
+}
+
+/**
+ *
+ * @param {boolean} isBlocked
+ */
+InputController.prototype.blockContextMenu = function(isBlocked)
+{
+	this._contextMenuBlocked = isBlocked;
+	if (isBlocked)
+	{
+		this._container.addEventListener("contextmenu", blockContextMenu);
+	} else {
+		this._container.removeEventListener("contextmenu", blockContextMenu);
+	}
 };
 
 /**

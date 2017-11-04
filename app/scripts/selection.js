@@ -2,7 +2,13 @@ import * as THREE from "../../bower_components/three.js/build/three.module";
 import Engine, {EAST, NORTH, SOUTH, WEST} from "./engine"; // jshint ignore:line
 import {TILE_HEIGHT, TILE_WIDTH} from "./mapmesh";
 import {emit, subscribe, unsubscribe} from "./bus";
-import generateFSM from "./state_machine";
+import generateFSM, {START} from "./state_machine";
+
+/**
+ *
+ * @type {number}
+ */
+const SHIFT_MOVE_JUMP = 10;
 
 /**
  *
@@ -22,11 +28,23 @@ const PRIMARY_SELECTION_BOX_COLOR = 0x2222ff;
  */
 const SECONDARY_SELECTION_BOX_COLOR = 0x22ff22;
 
-const NO_SELECTION = Symbol("NO_SELECTION");
+/**
+ * Nothing is selected
+ * @type {Symbol}
+ */
+export const NO_SELECTION = Symbol("NO_SELECTION");
 
-const PRIMARY_SELECTION = Symbol("PRIMARY_SELECTION");
+/**
+ * There is a primary selection
+ * @type {Symbol}
+ */
+export const PRIMARY_SELECTION = Symbol("PRIMARY_SELECTION");
 
-const SECONDARY_SELECTION = Symbol("SECONDARY_SELECTION");
+/**
+ * We have or are currently selecting a secondary selection
+ * @type {Symbol}
+ */
+export const SECONDARY_SELECTION = Symbol("SECONDARY_SELECTION");
 
 /**
  *
@@ -164,18 +182,16 @@ export default function SelectionManager(graphicsEngine)
 
 	const stateMap = {
 		[NO_SELECTION]: {
-			enter: this.deselect,
+			enter: this.deselectAll,
 			leave: null,
-			from: new Set([PRIMARY_SELECTION, SECONDARY_SELECTION]),
+			from: new Set([PRIMARY_SELECTION, SECONDARY_SELECTION, START]),
 			to: new Set([PRIMARY_SELECTION])
-		},
-		[PRIMARY_SELECTION]: {
+		}, [PRIMARY_SELECTION]: {
 			enter: null,
 			leave: null,
 			from: new Set([NO_SELECTION, SECONDARY_SELECTION]),
 			to: new Set([NO_SELECTION, SECONDARY_SELECTION])
-		},
-		[SECONDARY_SELECTION]: {
+		}, [SECONDARY_SELECTION]: {
 			enter: null,
 			leave: null,
 			from: new Set([PRIMARY_SELECTION]),
@@ -183,26 +199,20 @@ export default function SelectionManager(graphicsEngine)
 		}
 	};
 
-	const [mutate, getter] = generateFSM(this, stateMap, NO_SELECTION, "select");
+	const [mutate, getter] = generateFSM(this, stateMap, "select");
 
 	/**
 	 * @type {Function}
 	 */
 	Object.defineProperty(this, "changeSelectionState", {
-		enumerable: false,
-		configurable: false,
-		writable: false,
-		value: mutate
+		enumerable: false, configurable: false, writable: false, value: mutate
 	});
 
 	/**
 	 * @type {Function}
 	 */
 	Object.defineProperty(this, "getSelectionState", {
-		enumerable: false,
-		configurable: false,
-		writable: false,
-		value: getter
+		enumerable: false, configurable: false, writable: false, value: getter
 	});
 }
 
@@ -220,12 +230,10 @@ SelectionManager.prototype.init = function()
 	this._primarySelectionBox.scale.add(this._offset);
 
 	this._secondarySelectionBox =
-		new THREE.Mesh(this._highlightBoxGeometry,
-			new THREE.MeshLambertMaterial({
-				transparent: true,
-				opacity: 0.5,
-				color: SECONDARY_SELECTION_BOX_COLOR
-			}));
+		new THREE.Mesh(this._highlightBoxGeometry, new THREE.MeshLambertMaterial({
+			transparent: true, opacity: 0.5, color: SECONDARY_SELECTION_BOX_COLOR
+		}));
+	this._secondarySelectionBox.scale.add(this._offset);
 
 	this._primarySelectionBox.visible = false;
 	this._secondarySelectionBox.visible = false;
@@ -234,6 +242,8 @@ SelectionManager.prototype.init = function()
 	this._engine.addObjectToScene(this._primarySelectionBox);
 	this._engine.addObjectToScene(this._highlightBox);
 	this._engine.addObjectToScene(this._secondarySelectionBox);
+
+	this.changeSelectionState(NO_SELECTION);
 };
 
 SelectionManager.prototype.destroy = function()
@@ -270,12 +280,10 @@ SelectionManager.prototype._unsubscribe = function()
 	unsubscribe("input.wheel", this, this._onWheel);
 };
 
-SelectionManager.prototype.deselect = function()
+SelectionManager.prototype.deselectAll = function()
 {
-	this._primarySelection = null;
-	this._secondarySelection = null;
-	this._primarySelectionBox.visible = false;
-	this._secondarySelectionBox.visible = false;
+	this.deselectPrimary();
+	this.deselectSecondary();
 };
 
 /**
@@ -374,20 +382,22 @@ SelectionManager.prototype._userClicked = function(x, y)
  */
 SelectionManager.prototype._engineHasPicked = function(vec)
 {
+
 	if (this._nextPickSelects)
 	{
-		if (vec)
+		if (vec && this._engine.getCurrentMap().inBounds(vec))
 		{
-			this._primarySelectionBox.visible = true;
-			this._primarySelection = vec;
-			this.selectTile(vec);
-			this._engine.lookAt(vec, 250);
+			this.select(vec);
+
+			if (this.getSelectionState() === NO_SELECTION)
+			{
+				this.changeSelectionState(PRIMARY_SELECTION);
+			}
 		}
 		else
 		{
-			this._primarySelectionBox.visible = false;
+			this.deselect();
 		}
-
 		this._nextPickSelects = false;
 	}
 
@@ -405,12 +415,81 @@ SelectionManager.prototype._engineHasPicked = function(vec)
  *
  * @param {Vector3} vec
  */
-SelectionManager.prototype.selectTile = function(vec)
+SelectionManager.prototype.select = function(vec)
+{
+	console.assert(vec, "Must provide a vector to select or use deselect.");
+	const state = this.getSelectionState();
+	switch (state)
+	{
+		case NO_SELECTION:
+		case PRIMARY_SELECTION:
+			this.selectPrimary(vec);
+			break;
+		case SECONDARY_SELECTION:
+			this.selectSecondary(vec);
+			break;
+	}
+};
+
+/**
+ *
+ * @param {Vector3} vec
+ */
+SelectionManager.prototype.selectSecondary = function(vec)
+{
+	this._secondarySelectionBox.position.copy(vec);
+	this._secondarySelectionBox.position.multiplyScalar(TILE_WIDTH);
+	this._secondarySelectionBox.position.add(new THREE.Vector3(0, 0, 0));
+	this._secondarySelectionBox.visible = true;
+	this._secondarySelection = vec;
+	emit("select.secondary.tile", [vec]);
+};
+
+/**
+ *
+ * @param {Vector3} vec
+ */
+SelectionManager.prototype.selectPrimary = function(vec)
 {
 	this._primarySelectionBox.position.copy(vec);
 	this._primarySelectionBox.position.multiplyScalar(TILE_WIDTH);
 	this._primarySelectionBox.position.add(new THREE.Vector3(0, 0, 0));
-	emit("selection.tile", [vec]);
+	this._primarySelectionBox.visible = true;
+	this._primarySelection = vec;
+	emit("select.primary.tile", [vec]);
+	this._engine.lookAt(vec, 250);
+};
+
+SelectionManager.prototype.deselect = function()
+{
+	const state = this.getSelectionState();
+	switch (state)
+	{
+		case PRIMARY_SELECTION:
+			this.deselectPrimary();
+			this.changeSelectionState(NO_SELECTION);
+			break;
+		case SECONDARY_SELECTION:
+			this.deselectSecondary();
+			this.changeSelectionState(PRIMARY_SELECTION);
+			break;
+		default:
+			break;
+	}
+};
+
+SelectionManager.prototype.deselectSecondary = function()
+{
+	this._secondarySelectionBox.visible = false;
+	this._secondarySelection = null;
+	emit("select.secondary.deselect", []);
+};
+
+SelectionManager.prototype.deselectPrimary = function()
+{
+	this._primarySelectionBox.visible = false;
+	this._primarySelection = null;
+	emit("select.primary.deselect", []);
 };
 
 /**
@@ -431,43 +510,67 @@ SelectionManager.prototype.highlightTile = function(vec)
 SelectionManager.prototype._keyPress = function(event)
 {
 	let updateSelection = false;
-	switch (event.key)
+	const selectionDelta = new THREE.Vector3();
+	switch (event.code)
 	{
-		case "q":
+		case "KeyQ":
 			this._engine.orbit(500, false);
 			break;
-		case "e":
+		case "KeyE":
 			this._engine.orbit(500, true);
 			break;
-		case "w":
-			this._primarySelection.z++;
+		case "ArrowUp":
+		case "KeyW":
+			selectionDelta.z += this._shiftDown ? SHIFT_MOVE_JUMP : 1;
 			updateSelection = true;
 			break;
-		case "a":
-			this._primarySelection.x++;
+		case "ArrowLeft":
+		case "KeyA":
+			selectionDelta.x += this._shiftDown ? SHIFT_MOVE_JUMP : 1;
 			updateSelection = true;
 			break;
-		case "s":
-			this._primarySelection.z--;
+		case "ArrowDown":
+		case "KeyS":
+			selectionDelta.z -= this._shiftDown ? SHIFT_MOVE_JUMP : 1;
 			updateSelection = true;
 			break;
-		case "d":
-			this._primarySelection.x--;
+		case "ArrowRight":
+		case "KeyD":
+			selectionDelta.x -= this._shiftDown ? SHIFT_MOVE_JUMP : 1;
 			updateSelection = true;
 			break;
-		case "r":
-			this._primarySelection.y++;
+		case "KeyR":
+			if (this._altDown)
+			{
+				this.changeSelectionState(NO_SELECTION);
+				this._engine.resetCamera();
+			}
+			else
+			{
+				selectionDelta.y += this._shiftDown ? SHIFT_MOVE_JUMP : 1;
+				updateSelection = true;
+			}
+			break;
+		case "KeyF":
+			selectionDelta.y -= this._shiftDown ? SHIFT_MOVE_JUMP : 1;
 			updateSelection = true;
 			break;
-		case "f":
-			this._primarySelection.y--;
-			updateSelection = true;
-			break;
-		case "h":
+		case "KeyH":
 			console.error("This should be a help dialog.");
 			break;
-		case " ":
-			emit("editor.tile.toggle", [this._primarySelection]);
+		case "KeyZ":
+			switch (this.getSelectionState())
+			{
+				case PRIMARY_SELECTION:
+					this.changeSelectionState(SECONDARY_SELECTION);
+					break;
+				case SECONDARY_SELECTION:
+					this.changeSelectionState(PRIMARY_SELECTION);
+					break;
+			}
+			break;
+		case "Space":
+			this.toggleSelection();
 			break;
 		default:
 			console.log(event.key);
@@ -476,11 +579,17 @@ SelectionManager.prototype._keyPress = function(event)
 
 	if (updateSelection)
 	{
-		this.selectTile(this._primarySelection);
+		selectionDelta.add(this._primarySelection);
+		this.select(selectionDelta);
 		this._engine.lookAt(this._primarySelection, 250);
 	}
 
 	event.preventDefault();
+};
+
+SelectionManager.prototype.toggleSelection = function()
+{
+	emit("select.primary.toggle", [this._primarySelection]);
 };
 
 /**
@@ -496,6 +605,10 @@ SelectionManager.prototype._keyUp = function(event)
 			break;
 		case "Control":
 			this._controlDown = false;
+			if (this.getSelectionState() === SECONDARY_SELECTION)
+			{
+				this.changeSelectionState(PRIMARY_SELECTION);
+			}
 			break;
 		case "Alt":
 			this._altDown = false;
@@ -521,6 +634,10 @@ SelectionManager.prototype._keyDown = function(event)
 			break;
 		case "Control":
 			this._controlDown = true;
+			if (this.getSelectionState() === PRIMARY_SELECTION)
+			{
+				this.changeSelectionState(SECONDARY_SELECTION);
+			}
 			break;
 		case "Alt":
 			this._altDown = true;

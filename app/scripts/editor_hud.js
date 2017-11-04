@@ -1,5 +1,6 @@
 import ScalarEventWidget from "./widgets/scalar_event_widget";
 import Vec3EventWidget from "./widgets/vec3_event_widget";
+import StatusLine from "./widgets/status_line";
 import {EAST, NORTH, SOUTH, WEST} from "./engine";
 import HUD from "./hud";
 
@@ -10,6 +11,13 @@ import HUD from "./hud";
 export default function EditorHUD()
 {
 	HUD.call(this);
+
+	/**
+	 *
+	 * @type {StatusLine}
+	 * @private
+	 */
+	this._statusLine = new StatusLine();
 }
 
 EditorHUD.prototype = Object.create(HUD.prototype);
@@ -36,6 +44,8 @@ EditorHUD.prototype.init = function()
 				return "~";
 		}
 	}));
+
+	this._add(this._statusLine);
 
 	HUD.prototype.init.call(this);
 };
