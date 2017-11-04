@@ -47,6 +47,53 @@ export const PRIMARY_SELECTION = Symbol("PRIMARY_SELECTION");
 export const SECONDARY_SELECTION = Symbol("SECONDARY_SELECTION");
 
 /**
+ * An otherwise unrelated selection of tiles.
+ * @type {Symbol}
+ */
+export const DISJOINT_SELECTION = Symbol("DISJOINT_SELECTION");
+
+/**
+ *
+ * @type {MeshLambertMaterial}
+ */
+const SELECTION_VOLUME_MATERIAL = new THREE.MeshLambertMaterial({
+	color: SECONDARY_SELECTION_BOX_COLOR,
+	fog: false,
+	transparent: true,
+	opacity: 0.5
+});
+
+/**
+ *
+ * @type {MeshLambertMaterial}
+ */
+const SECONDARY_SELECTION_BOX_MATERIAL = new THREE.MeshLambertMaterial({
+	transparent: true,
+	opacity: 0.5,
+	color: SECONDARY_SELECTION_BOX_COLOR,
+	fog: false
+});
+
+/**
+ *
+ * @type {MeshLambertMaterial}
+ */
+const PRIMARY_SELECTION_BOX_MATERIAL = new THREE.MeshLambertMaterial({
+	transparent: true,
+	opacity: 0.5,
+	color: PRIMARY_SELECTION_BOX_COLOR,
+	fog: false
+});
+
+/**
+ *
+ * @type {MeshLambertMaterial}
+ */
+const HIGHLIGHT_BOX_MATERIAL = new THREE.MeshLambertMaterial({
+	transparent: true, opacity: 0.5, color: HIGHLIGHT_BOX_COLOR, fog: false
+});
+
+/**
  *
  * @param {Engine} graphicsEngine
  * @constructor
@@ -83,32 +130,45 @@ export default function SelectionManager(graphicsEngine)
 
 	/**
 	 *
-	 * @type {Mesh}
-	 * @private
-	 */
-	this._primarySelectionBox = new THREE.Mesh();
-
-	/**
-	 *
-	 * @type {Mesh}
-	 * @private
-	 */
-	this._secondarySelectionBox = new THREE.Mesh();
-
-	/**
-	 *
-	 * @type {Mesh}
-	 * @private
-	 */
-	this._highlightBox = new THREE.Mesh();
-
-	/**
-	 *
 	 * @type {BoxGeometry}
 	 * @private
 	 */
 	this._highlightBoxGeometry =
 		new THREE.BoxBufferGeometry(TILE_WIDTH, TILE_HEIGHT, TILE_WIDTH);
+
+	/**
+	 *
+	 * @type {Mesh}
+	 * @private
+	 */
+	this._primarySelectionBox =
+		new THREE.Mesh(this._highlightBoxGeometry, PRIMARY_SELECTION_BOX_MATERIAL);
+
+	/**
+	 *
+	 * @type {Mesh}
+	 * @private
+	 */
+	this._secondarySelectionBox =
+		new THREE.Mesh(this._highlightBoxGeometry,
+			SECONDARY_SELECTION_BOX_MATERIAL);
+
+	/**
+	 *
+	 * @type {Mesh}
+	 * @private
+	 */
+	this._highlightBox =
+		new THREE.Mesh(this._highlightBoxGeometry, HIGHLIGHT_BOX_MATERIAL);
+
+	/**
+	 *
+	 * @type {Mesh}
+	 * @private
+	 */
+	this._selectionVolume =
+		new THREE.Mesh(new THREE.BoxBufferGeometry(1, 1, 1),
+			SELECTION_VOLUME_MATERIAL);
 
 	/**
 	 *
@@ -154,10 +214,10 @@ export default function SelectionManager(graphicsEngine)
 
 	/**
 	 *
-	 * @type {Vector2}
+	 * @type {null|Vector2}
 	 * @private
 	 */
-	this._previousDragLocation = new THREE.Vector2();
+	this._previousDragLocation = null;
 
 	/**
 	 *
@@ -180,6 +240,24 @@ export default function SelectionManager(graphicsEngine)
 	 */
 	this._facingModifiers = new THREE.Vector3(1, 1, 1);
 
+	/**
+	 *
+	 * @type {boolean}
+	 * @private
+	 */
+	this._mouseDownIsRightClick = false;
+
+	/**
+	 *
+	 * @type {boolean}
+	 * @private
+	 */
+	this._cameraShouldFollowClick = false;
+
+	/**
+	 *
+	 * @type {{}}
+	 */
 	const stateMap = {
 		[NO_SELECTION]: {
 			enter: this.deselectAll,
@@ -190,12 +268,17 @@ export default function SelectionManager(graphicsEngine)
 			enter: null,
 			leave: null,
 			from: new Set([NO_SELECTION, SECONDARY_SELECTION]),
-			to: new Set([NO_SELECTION, SECONDARY_SELECTION])
+			to: new Set([NO_SELECTION, SECONDARY_SELECTION, DISJOINT_SELECTION])
 		}, [SECONDARY_SELECTION]: {
 			enter: null,
 			leave: null,
 			from: new Set([PRIMARY_SELECTION]),
-			to: new Set([NO_SELECTION, PRIMARY_SELECTION])
+			to: new Set([NO_SELECTION, PRIMARY_SELECTION, DISJOINT_SELECTION])
+		}, [DISJOINT_SELECTION]: {
+			enter: null,
+			leave: null,
+			from: new Set([PRIMARY_SELECTION, SECONDARY_SELECTION]),
+			to: new Set([NO_SELECTION, PRIMARY_SELECTION, DISJOINT_SELECTION])
 		}
 	};
 
@@ -218,32 +301,77 @@ export default function SelectionManager(graphicsEngine)
 
 SelectionManager.prototype.init = function()
 {
-	this._highlightBox =
-		new THREE.Mesh(this._highlightBoxGeometry, new THREE.MeshLambertMaterial({
-			transparent: true, opacity: 0.5, color: HIGHLIGHT_BOX_COLOR
-		}));
 	this._highlightBox.scale.add(this._offset);
-	this._primarySelectionBox =
-		new THREE.Mesh(this._highlightBoxGeometry, new THREE.MeshLambertMaterial({
-			transparent: true, opacity: 0.5, color: PRIMARY_SELECTION_BOX_COLOR
-		}));
 	this._primarySelectionBox.scale.add(this._offset);
-
-	this._secondarySelectionBox =
-		new THREE.Mesh(this._highlightBoxGeometry, new THREE.MeshLambertMaterial({
-			transparent: true, opacity: 0.5, color: SECONDARY_SELECTION_BOX_COLOR
-		}));
 	this._secondarySelectionBox.scale.add(this._offset);
 
 	this._primarySelectionBox.visible = false;
 	this._secondarySelectionBox.visible = false;
 
+	this._highlightBoxGeometry.attributes.position.dynamic = false;
+	this._selectionVolume.geometry.attributes.position.dynamic = true;
+
 	this._subscribe();
+	this._engine.addObjectToScene(this._selectionVolume);
 	this._engine.addObjectToScene(this._primarySelectionBox);
-	this._engine.addObjectToScene(this._highlightBox);
 	this._engine.addObjectToScene(this._secondarySelectionBox);
+	this._engine.addObjectToScene(this._highlightBox);
+
+	this._primarySelectionBox.renderOrder = 0.75;
+	this._secondarySelectionBox.renderOrder = 0.75;
+	this._selectionVolume.renderOrder = 0.25;
+
+	this._updateSelectionVolume();
 
 	this.changeSelectionState(NO_SELECTION);
+};
+
+/**
+ *
+ * @param {boolean?} should
+ * @returns {boolean|SelectionManager}
+ */
+SelectionManager.prototype.cameraShouldFollowClick = function(should)
+{
+	if (should === undefined)
+	{
+		return this._cameraShouldFollowClick;
+	}
+
+	this._cameraShouldFollowClick = should;
+	return this;
+};
+
+/**
+ *
+ * @private
+ */
+SelectionManager.prototype._updateSelectionVolume = function()
+{
+	const p = this._primarySelection;
+	const s = this._secondarySelection;
+
+	if (!p || !s || p.equals(s))
+	{
+		this._selectionVolume.visible = false;
+		emit("select.volume", [null, 0, 0, 0]);
+		return;
+	}
+
+	const w = Math.abs(p.x - s.x) + TILE_WIDTH;
+	const h = Math.abs(p.y - s.y) + TILE_HEIGHT;
+	const d = Math.abs(p.z - s.z) + TILE_WIDTH;
+
+	const geo = new THREE.BoxBufferGeometry(w, h, d);
+	this._selectionVolume.geometry.attributes.position
+		.set(geo.attributes.position.array);
+	this._selectionVolume.geometry.attributes.position.needsUpdate = true;
+	this._selectionVolume.visible = true;
+
+	this._selectionVolume.position.set(Math.min(p.x, s.x) + (w / 2) -
+		(TILE_WIDTH / 2), Math.min(p.y, s.y) + (h / 2) -
+		(TILE_HEIGHT / 2), Math.min(p.z, s.z) + (d / 2) - (TILE_WIDTH / 2));
+	emit("select.volume", [this._selectionVolume.position, w, h, d]);
 };
 
 SelectionManager.prototype.destroy = function()
@@ -252,6 +380,7 @@ SelectionManager.prototype.destroy = function()
 	this._engine.removeObjectFromScene(this._primarySelectionBox);
 	this._engine.removeObjectFromScene(this._highlightBox);
 	this._engine.removeObjectFromScene(this._secondarySelectionBox);
+	this._engine.removeObjectFromScene(this._selectionVolume);
 };
 
 SelectionManager.prototype._subscribe = function()
@@ -338,6 +467,12 @@ SelectionManager.prototype._onDrag = function(x, y)
 {
 	if (this._metaDown)
 	{
+		if (!this._previousDragLocation)
+		{
+			this._previousDragLocation = new THREE.Vector2(x, y);
+			emit("select.drag.begin", [x, y]);
+		}
+
 		// Scroll relative to the distance between the last drag update and now
 		let delta = new THREE.Vector3();
 		const df = this._dragScrollDampingFactor;
@@ -355,12 +490,13 @@ SelectionManager.prototype._onDrag = function(x, y)
  *
  * @param {number} x
  * @param {number} y
+ * @param {boolean} right
  * @private
  */
-SelectionManager.prototype._mouseDown = function(x, y)
+SelectionManager.prototype._mouseDown = function(x, y, right)
 {
+	this._mouseDownIsRightClick = right;
 	this._mouseDownLocation.set(x, y);
-	this._previousDragLocation.set(x, y);
 };
 
 /**
@@ -371,6 +507,13 @@ SelectionManager.prototype._mouseDown = function(x, y)
  */
 SelectionManager.prototype._userClicked = function(x, y)
 {
+	if (this._previousDragLocation)
+	{
+		this._previousDragLocation = null;
+		emit("select.drag.end", [x, y]);
+		return;
+	}
+
 	this._nextPickSelects = true;
 	this._engine.pickAtCoordinates(x, y, true);
 };
@@ -459,8 +602,14 @@ SelectionManager.prototype.selectSecondary = function(vec)
 	this._secondarySelectionBox.position.add(new THREE.Vector3(0, 0, 0));
 	this._secondarySelectionBox.visible = true;
 	this._secondarySelection = vec;
+	this._updateSelectionVolume();
 	emit("select.secondary.tile",
 		[this._primarySelection, this._secondarySelection]);
+
+	if (this._cameraShouldFollowClick)
+	{
+		this._engine.lookAt(vec, 250);
+	}
 };
 
 /**
@@ -474,9 +623,14 @@ SelectionManager.prototype.selectPrimary = function(vec)
 	this._primarySelectionBox.position.add(new THREE.Vector3(0, 0, 0));
 	this._primarySelectionBox.visible = true;
 	this._primarySelection = vec;
+	this._updateSelectionVolume();
 	emit("select.primary.tile",
 		[this._primarySelection, this._secondarySelection]);
-	this._engine.lookAt(vec, 250);
+
+	if (this._cameraShouldFollowClick)
+	{
+		this._engine.lookAt(vec, 250);
+	}
 };
 
 SelectionManager.prototype.deselect = function()
@@ -501,6 +655,7 @@ SelectionManager.prototype.deselectSecondary = function()
 {
 	this._secondarySelectionBox.visible = false;
 	this._secondarySelection = null;
+	this._updateSelectionVolume();
 	emit("select.secondary.deselect",
 		[this._primarySelection, this._secondarySelection]);
 };
@@ -509,6 +664,7 @@ SelectionManager.prototype.deselectPrimary = function()
 {
 	this._primarySelectionBox.visible = false;
 	this._primarySelection = null;
+	this._updateSelectionVolume();
 	emit("select.primary.deselect",
 		[this._primarySelection, this._secondarySelection]);
 };
@@ -630,16 +786,16 @@ SelectionManager.prototype._keyUp = function(event)
 			break;
 		case "Control":
 			this._controlDown = false;
-			if (this.getSelectionState() === SECONDARY_SELECTION)
-			{
-				this.changeSelectionState(PRIMARY_SELECTION);
-			}
 			break;
 		case "Alt":
 			this._altDown = false;
 			break;
 		case "Shift":
 			this._shiftDown = false;
+			if (this.getSelectionState() === SECONDARY_SELECTION)
+			{
+				this.changeSelectionState(PRIMARY_SELECTION);
+			}
 			break;
 		default:
 			return;
@@ -659,16 +815,16 @@ SelectionManager.prototype._keyDown = function(event)
 			break;
 		case "Control":
 			this._controlDown = true;
-			if (this.getSelectionState() === PRIMARY_SELECTION)
-			{
-				this.changeSelectionState(SECONDARY_SELECTION);
-			}
 			break;
 		case "Alt":
 			this._altDown = true;
 			break;
 		case "Shift":
 			this._shiftDown = true;
+			if (this.getSelectionState() === PRIMARY_SELECTION)
+			{
+				this.changeSelectionState(SECONDARY_SELECTION);
+			}
 			break;
 		case "Escape":
 			this.changeSelectionState(NO_SELECTION);

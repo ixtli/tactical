@@ -2,7 +2,7 @@ import {subscribe, unsubscribe} from "../bus";
 import {stringifySymbol} from "../state_machine";
 import WidgetBase from "./base_widget";
 import {
-	NO_SELECTION, PRIMARY_SELECTION, SECONDARY_SELECTION
+	DISJOINT_SELECTION, NO_SELECTION, PRIMARY_SELECTION, SECONDARY_SELECTION
 } from "../selection";
 import {hideElement, showElement} from "../dom_util";
 
@@ -13,6 +13,8 @@ const SELECTION_STATE = {
 		text: "primary", showSelectionDisplay: true
 	}, [SECONDARY_SELECTION]: {
 		text: "secondary", showSelectionDisplay: true
+	}, [DISJOINT_SELECTION]: {
+		text: "disjoint", showSelectionDisplay: false
 	}
 };
 

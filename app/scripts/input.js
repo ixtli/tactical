@@ -1,4 +1,4 @@
-import Engine from "./engine";
+import Engine from "./engine"; // jshint ignore:line
 import * as THREE from "../../bower_components/three.js/build/three.module";
 import {emit} from "./bus";
 
@@ -182,7 +182,8 @@ InputController.prototype.onWheel = function(event)
  */
 InputController.prototype.onClick = function(event)
 {
-	emit("input.click", [event.clientX, event.clientY]);
+	const right = event.type === "contextmenu";
+	emit("input.click", [event.clientX, event.clientY, right]);
 	this._engine.pickAtCoordinates(event.clientX, event.clientY);
 	event.preventDefault();
 	return false;
@@ -194,8 +195,9 @@ InputController.prototype.onClick = function(event)
  */
 InputController.prototype.onMouseDown = function(event)
 {
+	const right = event.type === "contextmenu";
 	this._mouseDown = true;
-	emit("input.mousedown", [event.clientX, event.clientY]);
+	emit("input.mousedown", [event.clientX, event.clientY, right]);
 };
 
 /**
@@ -205,7 +207,8 @@ InputController.prototype.onMouseDown = function(event)
 InputController.prototype.onMouseUp = function(event)
 {
 	this._mouseDown = false;
-	emit("input.mouseup", [event.clientX, event.clientY]);
+	const right = event.type === "contextmenu";
+	emit("input.mouseup", [event.clientX, event.clientY, right]);
 };
 
 /**

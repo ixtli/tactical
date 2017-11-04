@@ -8,9 +8,9 @@
           <option name="FORCE_SEMICOLON_STYLE" value="true" />
           <option name="SPACE_BEFORE_FUNCTION_LEFT_PARENTH" value="false" />
           <option name="REFORMAT_C_STYLE_COMMENTS" value="true" />
-          <option name="USE_DOUBLE_QUOTES" value="false" />
           <option name="FORCE_QUOTE_STYlE" value="true" />
           <option name="ENFORCE_TRAILING_COMMA" value="Remove" />
+          <option name="VAR_DECLARATION_WRAP" value="5" />
           <option name="FUNCTION_EXPRESSION_BRACE_STYLE" value="2" />
         </JSCodeStyleSettings>
         <JSON>
@@ -33,12 +33,13 @@
           <option name="ELSE_ON_NEW_LINE" value="true" />
           <option name="CATCH_ON_NEW_LINE" value="true" />
           <option name="FINALLY_ON_NEW_LINE" value="true" />
-          <option name="ALIGN_MULTILINE_BINARY_OPERATION" value="true" />
-          <option name="ALIGN_MULTILINE_TERNARY_OPERATION" value="true" />
-          <option name="ALIGN_MULTILINE_EXTENDS_LIST" value="true" />
+          <option name="ALIGN_MULTILINE_PARAMETERS" value="false" />
+          <option name="ALIGN_MULTILINE_FOR" value="false" />
           <option name="ALIGN_MULTILINE_ARRAY_INITIALIZER_EXPRESSION" value="true" />
-          <option name="CALL_PARAMETERS_WRAP" value="1" />
+          <option name="CALL_PARAMETERS_WRAP" value="5" />
           <option name="METHOD_PARAMETERS_WRAP" value="1" />
+          <option name="METHOD_PARAMETERS_LPAREN_ON_NEXT_LINE" value="true" />
+          <option name="METHOD_PARAMETERS_RPAREN_ON_NEXT_LINE" value="true" />
           <option name="EXTENDS_LIST_WRAP" value="1" />
           <option name="EXTENDS_KEYWORD_WRAP" value="1" />
           <option name="METHOD_CALL_CHAIN_WRAP" value="5" />
@@ -48,7 +49,7 @@
           <option name="ARRAY_INITIALIZER_WRAP" value="1" />
           <option name="ARRAY_INITIALIZER_LBRACE_ON_NEXT_LINE" value="true" />
           <option name="ARRAY_INITIALIZER_RBRACE_ON_NEXT_LINE" value="true" />
-          <option name="ASSIGNMENT_WRAP" value="1" />
+          <option name="ASSIGNMENT_WRAP" value="5" />
           <option name="WRAP_COMMENTS" value="true" />
           <option name="IF_BRACE_FORCE" value="3" />
           <option name="DOWHILE_BRACE_FORCE" value="3" />
@@ -61,6 +62,6 @@
         </codeStyleSettings>
       </value>
     </option>
-    <option name="PREFERRED_PROJECT_CODE_STYLE" value="tactical" />
+    <option name="USE_PER_PROJECT_SETTINGS" value="true" />
   </component>
 </project>
