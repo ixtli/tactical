@@ -382,7 +382,6 @@ SelectionManager.prototype._userClicked = function(x, y)
  */
 SelectionManager.prototype._engineHasPicked = function(vec)
 {
-
 	if (this._nextPickSelects)
 	{
 		if (vec && this._engine.getCurrentMap().inBounds(vec))
@@ -428,6 +427,24 @@ SelectionManager.prototype.select = function(vec)
 		case SECONDARY_SELECTION:
 			this.selectSecondary(vec);
 			break;
+	}
+};
+
+/**
+ *
+ * @returns {null|Vector3}
+ */
+SelectionManager.prototype.getCurrentSelectionVector = function()
+{
+	const state = this.getSelectionState();
+	switch (state)
+	{
+		case NO_SELECTION:
+			return null;
+		case PRIMARY_SELECTION:
+			return this._primarySelection;
+		case SECONDARY_SELECTION:
+			return  this._secondarySelection;
 	}
 };
 
@@ -579,9 +596,13 @@ SelectionManager.prototype._keyPress = function(event)
 
 	if (updateSelection)
 	{
-		selectionDelta.add(this._primarySelection);
-		this.select(selectionDelta);
-		this._engine.lookAt(this._primarySelection, 250);
+		const curvec = this.getCurrentSelectionVector();
+		if (curvec)
+		{
+			selectionDelta.add(curvec);
+			this.select(selectionDelta);
+			this._engine.lookAt(selectionDelta, 250);
+		}
 	}
 
 	event.preventDefault();

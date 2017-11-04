@@ -217,12 +217,11 @@ TacticalEngine.prototype._controlKey = function(event)
 	{
 		case "1":
 			this.changeState(GAME);
-			break;
+			return true;
 		case "2":
 			this.changeState(EDITOR);
-			break;
+			return true;
 		default:
-			console.log("Unhandled control sequence:", event.key);
 			break;
 	}
 };

@@ -152,15 +152,6 @@ InputController.prototype.deRegisterEventHandlers = function()
 
 /**
  *
- * @param {MouseEvent} event
- */
-function blockContextMenu(event)
-{
-	event.preventDefault();
-}
-
-/**
- *
  * @param {boolean} isBlocked
  */
 InputController.prototype.blockContextMenu = function(isBlocked)
@@ -168,9 +159,11 @@ InputController.prototype.blockContextMenu = function(isBlocked)
 	this._contextMenuBlocked = isBlocked;
 	if (isBlocked)
 	{
-		this._container.addEventListener("contextmenu", blockContextMenu);
-	} else {
-		this._container.removeEventListener("contextmenu", blockContextMenu);
+		this._container.addEventListener("contextmenu", this._onClickFunction);
+	}
+	else
+	{
+		this._container.removeEventListener("contextmenu", this._onClickFunction);
 	}
 };
 
@@ -191,6 +184,8 @@ InputController.prototype.onClick = function(event)
 {
 	emit("input.click", [event.clientX, event.clientY]);
 	this._engine.pickAtCoordinates(event.clientX, event.clientY);
+	event.preventDefault();
+	return false;
 };
 
 /**
@@ -222,7 +217,9 @@ InputController.prototype.onMouseMove = function(event)
 	if (this._mouseDown)
 	{
 		emit("input.drag", [event.clientX, event.clientY]);
-	} else {
+	}
+	else
+	{
 		this._engine.pickAtCoordinates(event.clientX, event.clientY);
 	}
 };
@@ -235,12 +232,18 @@ InputController.prototype.onKeyPress = function(event)
 {
 	if (event.ctrlKey)
 	{
-		emit("input.signal", [event]);
+		const results = emit("input.signal", [event]);
+		const len = results.length;
+		for (let i = 0; i < len; i++)
+		{
+			if (results[i])
+			{
+				return;
+			}
+		}
 	}
-	else
-	{
-		emit("input.keypress", [event]);
-	}
+
+	emit("input.keypress", [event]);
 };
 
 /**

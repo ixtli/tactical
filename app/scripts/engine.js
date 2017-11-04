@@ -277,6 +277,13 @@ export default function Engine(container, options)
 	 * @private
 	 */
 	this._grid = new THREE.GridHelper(10, 10, "red", "gray");
+
+	/**
+	 *
+	 * @type {null|LineSegments}
+	 * @private
+	 */
+	this._mapBoundingCube = null;
 }
 
 Engine.prototype.init = function()
@@ -402,6 +409,16 @@ Engine.prototype.gridVisible = function(visible)
 
 /**
  *
+ * @param {boolean} visible
+ */
+Engine.prototype.mapBoundingCubeVisible = function(visible)
+{
+	this._mapBoundingCube.visible = visible;
+	emit("engine.mapboundingcube.visibility", [visible]);
+};
+
+/**
+ *
  * @param {TerrainMap} newMap
  */
 Engine.prototype.useMap = function(newMap)
@@ -438,6 +455,22 @@ Engine.prototype.useMap = function(newMap)
 	this._grid.position.z = mapSize / 2 - (TILE_WIDTH / 2);
 	this._scene.add(this._grid);
 	this.gridVisible(true);
+
+	const geom = new THREE.BoxBufferGeometry(newMap.width(),
+		newMap.height(),
+		newMap.depth());
+	const edges = new THREE.EdgesGeometry(geom);
+	const mat = new THREE.LineBasicMaterial({
+		color: 0xffffff,
+		depthWrite: false,
+		lights: false,
+	});
+	this._mapBoundingCube = new THREE.LineSegments(edges, mat);
+	this._mapBoundingCube.position.x = newMap.width() / 2 - (TILE_WIDTH / 2);
+	this._mapBoundingCube.position.z = newMap.depth() / 2 - (TILE_WIDTH / 2);
+	this._mapBoundingCube.position.y = newMap.height() / 2 - (TILE_HEIGHT / 2);
+	this._scene.add(this._mapBoundingCube);
+	this.mapBoundingCubeVisible(false);
 
 	this._currentMap = newMap;
 
