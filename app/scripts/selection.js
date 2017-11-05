@@ -29,6 +29,12 @@ const PRIMARY_SELECTION_BOX_COLOR = 0x2222ff;
 const SECONDARY_SELECTION_BOX_COLOR = 0x22ff22;
 
 /**
+ *
+ * @type {number}
+ */
+const VOLUME_SELECTION_COLOR = 0xff7777;
+
+/**
  * Nothing is selected
  * @type {Symbol}
  */
@@ -57,10 +63,7 @@ export const DISJOINT_SELECTION = Symbol("DISJOINT_SELECTION");
  * @type {MeshLambertMaterial}
  */
 const SELECTION_VOLUME_MATERIAL = new THREE.MeshLambertMaterial({
-	color: SECONDARY_SELECTION_BOX_COLOR,
-	fog: false,
-	transparent: true,
-	opacity: 0.5
+	color: VOLUME_SELECTION_COLOR, fog: false, transparent: true, opacity: 0.5
 });
 
 /**
@@ -308,8 +311,8 @@ SelectionManager.prototype.init = function()
 	this._primarySelectionBox.visible = false;
 	this._secondarySelectionBox.visible = false;
 
-	this._highlightBoxGeometry.attributes.position.dynamic = false;
-	this._selectionVolume.geometry.attributes.position.dynamic = true;
+	this._highlightBoxGeometry.attributes.position.setDynamic(false);
+	this._selectionVolume.geometry.attributes.position.setDynamic(true);
 
 	this._subscribe();
 	this._engine.addObjectToScene(this._selectionVolume);
@@ -317,9 +320,10 @@ SelectionManager.prototype.init = function()
 	this._engine.addObjectToScene(this._secondarySelectionBox);
 	this._engine.addObjectToScene(this._highlightBox);
 
-	this._primarySelectionBox.renderOrder = 0.75;
-	this._secondarySelectionBox.renderOrder = 0.75;
-	this._selectionVolume.renderOrder = 0.25;
+	// There's probably a better way to solve this intersection issue
+	this._primarySelectionBox.renderOrder = 0.25;
+	this._secondarySelectionBox.renderOrder = 0.25;
+	this._selectionVolume.renderOrder = 0.75;
 
 	this._updateSelectionVolume();
 
@@ -358,9 +362,11 @@ SelectionManager.prototype._updateSelectionVolume = function()
 		return;
 	}
 
-	const w = Math.abs(p.x - s.x) + TILE_WIDTH;
-	const h = Math.abs(p.y - s.y) + TILE_HEIGHT;
-	const d = Math.abs(p.z - s.z) + TILE_WIDTH;
+	const OFFSET = 0.001;
+
+	const w = Math.abs(p.x - s.x) + TILE_WIDTH + OFFSET;
+	const h = Math.abs(p.y - s.y) + TILE_HEIGHT + OFFSET;
+	const d = Math.abs(p.z - s.z) + TILE_WIDTH + OFFSET;
 
 	const geo = new THREE.BoxBufferGeometry(w, h, d);
 	this._selectionVolume.geometry.attributes.position
@@ -369,8 +375,9 @@ SelectionManager.prototype._updateSelectionVolume = function()
 	this._selectionVolume.visible = true;
 
 	this._selectionVolume.position.set(Math.min(p.x, s.x) + (w / 2) -
-		(TILE_WIDTH / 2), Math.min(p.y, s.y) + (h / 2) -
-		(TILE_HEIGHT / 2), Math.min(p.z, s.z) + (d / 2) - (TILE_WIDTH / 2));
+		((TILE_WIDTH + OFFSET) / 2), Math.min(p.y, s.y) + (h / 2) -
+		((TILE_HEIGHT + OFFSET) / 2), Math.min(p.z, s.z) + (d / 2) -
+		((TILE_WIDTH + OFFSET) / 2));
 	emit("select.volume", [this._selectionVolume.position, w, h, d]);
 };
 
@@ -761,7 +768,6 @@ SelectionManager.prototype._keyPress = function(event)
 		{
 			selectionDelta.add(currentVector);
 			this.select(selectionDelta);
-			this._engine.lookAt(selectionDelta, 250);
 		}
 	}
 
@@ -770,7 +776,7 @@ SelectionManager.prototype._keyPress = function(event)
 
 SelectionManager.prototype.toggleSelection = function()
 {
-	emit("select.toggle", [this._primarySelection]);
+	emit("select.toggle", [this._primarySelection, this._secondarySelection]);
 };
 
 /**

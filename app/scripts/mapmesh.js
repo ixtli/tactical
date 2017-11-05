@@ -130,6 +130,7 @@ TerrainMapMesh.prototype.regenerate = function()
 	pickingGeom.mergeVertices();
 	this._geometry.fromGeometry(newGeometry);
 	this._pickingGeometry.fromGeometry(pickingGeom);
+
 	this._geometry.computeBoundingSphere();
 	this._pickingGeometry.computeBoundingSphere();
 	console.timeEnd("TerrainMap::regenerate()");

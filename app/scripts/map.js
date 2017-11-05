@@ -64,12 +64,54 @@ TerrainMap.prototype.destroy = function()
 	this._mesh.destroy();
 };
 
+TerrainMap.prototype._toggleTile = function(vec1, vec2)
+{
+	const d = this._depth;
+	const h = this._height;
+	const w = this._width;
+
+	if (!vec2)
+	{
+		vec2 = vec1;
+	}
+
+	const xMin = Math.max(Math.min(vec1.x, vec2.x), 0);
+	const yMin = Math.max(Math.min(vec1.y, vec2.y), 0);
+	const zMin = Math.max(Math.min(vec1.z, vec2.z), 0);
+	const xMax = Math.min(Math.max(vec1.x, vec2.x), w - 1);
+	const yMax = Math.min(Math.max(vec1.y, vec2.y), h - 1);
+	const zMax = Math.min(Math.max(vec1.z, vec2.z), d - 1);
+
+	const data = this._data;
+
+	let tilesModified = 0;
+	let offset = 0;
+	let zOffset = 0;
+	for (let z = zMin; z <= zMax; z++)
+	{
+		zOffset = z * w * h;
+		for (let y = yMin; y <= yMax; y++)
+		{
+			offset = zOffset + y * w;
+			for (let x = xMin; x <= xMax; x++)
+			{
+				data[offset + x] = data[offset + x] ? 0 : 1;
+				tilesModified++;
+			}
+		}
+	}
+
+	this._mesh.regenerate();
+
+	console.log("Toggled", tilesModified, "tiles.");
+};
+
 /**
  *
  * @param {Vector3} vec
  * @private
  */
-TerrainMap.prototype._toggleTile = function(vec)
+TerrainMap.prototype._toggleSingleTile = function(vec)
 {
 	if (vec.x < 0 || vec.y < 0 || vec.z < 0)
 	{
@@ -86,7 +128,6 @@ TerrainMap.prototype._toggleTile = function(vec)
 
 	const idx = (vec.z * h * w) + (vec.y * w) + vec.x;
 	this._data[idx] = this._data[idx] ? 0 : 1;
-	this._mesh.regenerate();
 };
 
 /**
@@ -132,7 +173,7 @@ TerrainMap.prototype.inBounds = function(vec)
 	}
 
 	return !(vec.x >= this.width() || vec.y >= this.height() || vec.z >=
-					 this.width());
+		this.width());
 
 };
 
