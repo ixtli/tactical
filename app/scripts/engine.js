@@ -19,8 +19,9 @@ export const WEST = Symbol("west");
 const CAMERA_NEAR = 0.1;
 const CAMERA_FAR = 2000;
 const SELECT_SIZE = 1000;
-const MIN_ZOOM = 2;
+const MIN_ZOOM = 4;
 const MAX_ZOOM = 32;
+const START_ZOOM = 8;
 
 /**
  *
@@ -168,7 +169,7 @@ export default function Engine(container, options)
 	 * @type {number}
 	 * @private
 	 */
-	this._zoom = MIN_ZOOM;
+	this._zoom = START_ZOOM;
 
 	/**
 	 *
@@ -355,8 +356,8 @@ Engine.prototype._updateCameraFrustum = function()
 {
 	const cam = this._camera;
 
-	// This number appears to make 1 unit world space = powers of two pixels
-	const value = this._zoom * 0.00098; // WHY?!
+	// Bigger zooms out
+	const value = this._zoom * 0.000876; // who knows why
 	const w = value * this._windowWidth;
 	const h = value * this._windowHeight;
 	cam.left = w / -2;
@@ -488,7 +489,7 @@ Engine.prototype.resetCamera = function()
 	this.lookAt(new THREE.Vector3(Math.floor(map.width() / 2),
 		0,
 		Math.floor(map.height() / 2)), 0);
-	this.zoom(MIN_ZOOM, 0);
+	this.zoom(START_ZOOM, 0);
 	emit("engine.camera.reset", []);
 };
 
