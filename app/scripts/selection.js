@@ -234,7 +234,7 @@ export default function SelectionManager(graphicsEngine)
 	 * @type {number}
 	 * @private
 	 */
-	this._zoomStepSize = 2;
+	this._zoomStepSize = 1;
 
 	/**
 	 *
@@ -456,11 +456,11 @@ SelectionManager.prototype._onWheel = function(deltaY)
 {
 	if (deltaY > 0)
 	{
-		this._engine.zoom(this._zoomStepSize, 250);
+		this._engine.zoom(this._engine._zoomTarget << 1, 250);
 	}
 	else
 	{
-		this._engine.zoom(-this._zoomStepSize, 250);
+		this._engine.zoom(this._engine._zoomTarget >> 1, 250);
 	}
 };
 

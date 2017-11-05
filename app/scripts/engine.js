@@ -17,8 +17,10 @@ export const EAST = Symbol("east");
 export const WEST = Symbol("west");
 
 const CAMERA_NEAR = 0.1;
-const CAMERA_FAR = 5000;
+const CAMERA_FAR = 2000;
 const SELECT_SIZE = 1000;
+const MIN_ZOOM = 2;
+const MAX_ZOOM = 32;
 
 /**
  *
@@ -131,13 +133,6 @@ export default function Engine(container, options)
 	 * @type {number}
 	 * @private
 	 */
-	this._aspectRatio = this._windowWidth / this._windowHeight;
-
-	/**
-	 *
-	 * @type {number}
-	 * @private
-	 */
 	this._horizontalBackoff = 500;
 
 	/**
@@ -173,7 +168,7 @@ export default function Engine(container, options)
 	 * @type {number}
 	 * @private
 	 */
-	this._zoom = 4;
+	this._zoom = MIN_ZOOM;
 
 	/**
 	 *
@@ -342,16 +337,6 @@ Engine.prototype.pickAtCoordinates = function(x, y, force)
 	this._broadcastNextPick = this._broadcastNextPick || force;
 };
 
-Engine.prototype.getSceneWidth = function()
-{
-	return 25 * TILE_WIDTH * 4;
-};
-
-Engine.prototype.getSceneHeight = function()
-{
-	return 25 * TILE_HEIGHT * 4;
-};
-
 /**
  *
  * @private
@@ -368,14 +353,17 @@ Engine.prototype._setupCamera = function()
  */
 Engine.prototype._updateCameraFrustum = function()
 {
-	const aspect = this._aspectRatio;
 	const cam = this._camera;
-	const value = this._zoom;
-	const frustumSize = Math.max(this.getSceneWidth(), this.getSceneHeight());
-	cam.left = frustumSize * aspect / -value;
-	cam.right = frustumSize * aspect / value;
-	cam.top = frustumSize / value;
-	cam.bottom = frustumSize / -value;
+
+	// This number appears to make 1 unit world space = powers of two pixels
+	const value = this._zoom * 0.00098; // WHY?!
+	const w = value * this._windowWidth;
+	const h = value * this._windowHeight;
+	cam.left = w / -2;
+	cam.right = w / 2;
+	cam.top = h / 2;
+	cam.bottom = h / -2;
+
 	cam.updateProjectionMatrix();
 };
 
@@ -479,9 +467,7 @@ Engine.prototype.useMap = function(newMap)
 		newMap.depth());
 	const edges = new THREE.EdgesGeometry(geom);
 	const mat = new THREE.LineBasicMaterial({
-		color: 0xffffff,
-		depthWrite: false,
-		lights: false,
+		color: 0xffffff, depthWrite: false, lights: false
 	});
 	this._mapBoundingCube = new THREE.LineSegments(edges, mat);
 	this._mapBoundingCube.position.x = newMap.width() / 2 - (TILE_WIDTH / 2);
@@ -502,7 +488,7 @@ Engine.prototype.resetCamera = function()
 	this.lookAt(new THREE.Vector3(Math.floor(map.width() / 2),
 		0,
 		Math.floor(map.height() / 2)), 0);
-	this.zoom(0, 0);
+	this.zoom(MIN_ZOOM, 0);
 	emit("engine.camera.reset", []);
 };
 
@@ -566,7 +552,7 @@ Engine.prototype._pick = function()
 
 	this._renderer.readRenderTargetPixels(this._pickingTexture,
 		this._nextPickCoordinates.x, this._pickingTexture.height -
-																 this._nextPickCoordinates.y,
+		this._nextPickCoordinates.y,
 		1,
 		1,
 		PICK_PIXEL_BUFFER);
@@ -574,7 +560,7 @@ Engine.prototype._pick = function()
 	this._pickStateDirty = false;
 	//interpret the pixel as an ID
 	let id = ( PICK_PIXEL_BUFFER[0] << 16 ) | ( PICK_PIXEL_BUFFER[1] << 8 ) |
-					 ( PICK_PIXEL_BUFFER[2] );
+		( PICK_PIXEL_BUFFER[2] );
 
 	// Is the mouse pointing at an object in the scene?
 	let found = id > 0 ? this._currentMap.tileForID(id - 1) : null;
@@ -625,7 +611,6 @@ Engine.prototype._onWindowResize = function()
 {
 	const width = this._windowWidth = window.innerWidth;
 	const height = this._windowHeight = window.innerHeight;
-	this._aspectRatio = width / height;
 	console.debug("Window resize", width, "x", height);
 	this._updateCameraFrustum();
 	const dpr = this._renderer.getPixelRatio();
@@ -645,7 +630,7 @@ Engine.prototype.getCameraPosition = function(target)
 	const degs = this._cameraOrbitDegrees;
 	pos.x = target.x - (bk * Math.cos(THREE.Math.degToRad(degs)));
 	pos.z = target.z - (bk * Math.sin(THREE.Math.degToRad(degs)));
-	pos.y = target.y + this._verticalBackoff * TILE_WIDTH;
+	pos.y = target.y + this._verticalBackoff * TILE_HEIGHT;
 	return pos;
 };
 
@@ -656,9 +641,9 @@ Engine.prototype.getCameraPosition = function(target)
  */
 Engine.prototype.zoom = function(newFactor, ms)
 {
-	let target = this._zoomTarget + newFactor;
+	const target = newFactor;
 
-	if (target < 2 || target > 32)
+	if (target < MIN_ZOOM || target > MAX_ZOOM)
 	{
 		return;
 	}
