@@ -1,6 +1,6 @@
-import * as THREE from "../../bower_components/three.js/build/three.module";
+import * as THREE from "../../../bower_components/three.js/build/three.module";
 import TerrainMapMesh from "./mapmesh";
-import {subscribe, unsubscribe} from "./bus";
+import {subscribe, unsubscribe} from "../bus";
 
 /**
  *

@@ -1,4 +1,4 @@
-import * as THREE from "../../bower_components/three.js/build/three.module";
+import * as THREE from "../../../bower_components/three.js/build/three.module";
 
 import TerrainMap from "./map"; // jshint ignore:line
 
