@@ -49,6 +49,13 @@ export default function TerrainMap(w, h, d)
 	 * @private
 	 */
 	this._mesh = new TerrainMapMesh(this);
+
+	/**
+	 *
+	 * @type {number}
+	 * @private
+	 */
+	this._tileCount = 0;
 }
 
 TerrainMap.prototype.init = function()
@@ -95,7 +102,15 @@ TerrainMap.prototype._toggleTile = function(vec1, vec2)
 			offset = zOffset + y * w;
 			for (let x = xMin; x <= xMax; x++)
 			{
-				data[offset + x] = data[offset + x] ? 0 : 1;
+				let old = data[offset + x];
+				let val = old ? 0 : 1;
+
+				if (old !== val)
+				{
+					this._tileCount += val ? 1 : -1;
+				}
+
+				data[offset + x] = val;
 				tilesModified++;
 			}
 		}
@@ -127,38 +142,8 @@ TerrainMap.prototype._toggleSingleTile = function(vec)
 	}
 
 	const idx = (vec.z * h * w) + (vec.y * w) + vec.x;
+	this._tileCount += this._data[idx] ? -1 : 1;
 	this._data[idx] = this._data[idx] ? 0 : 1;
-};
-
-/**
- *
- * @param {number} groundDepth
- */
-TerrainMap.prototype.randomGround = function(groundDepth)
-{
-	const d = this._depth;
-	const h = this._height;
-	const w = this._width;
-	const data = this._data;
-	let zOffset = 0;
-	let offset = 0;
-	let tileCount = 0;
-	console.time("TerrainMap::randomGround()");
-	for (let z = 0; z < d; z++)
-	{
-		zOffset = z * w * h;
-		for (let y = 0; y < groundDepth; y++)
-		{
-			offset = zOffset + y * w;
-			for (let x = 0; x < w; x++)
-			{
-				data[offset + x] = (Math.random() < y / groundDepth) ? 0 : 1;
-				tileCount++;
-			}
-		}
-	}
-	console.timeEnd("TerrainMap::randomGround()");
-	console.debug("Generated map with", tileCount, "tiles.");
 };
 
 /**
@@ -242,4 +227,13 @@ TerrainMap.prototype.depth = function()
 TerrainMap.prototype.getMesh = function()
 {
 	return this._mesh;
+};
+
+/**
+ *
+ * @returns {number}
+ */
+TerrainMap.prototype.getTileCount = function()
+{
+	return this._tileCount;
 };

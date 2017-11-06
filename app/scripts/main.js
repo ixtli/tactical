@@ -192,7 +192,7 @@ TacticalEngine.prototype._leaveEditorState = function()
  */
 TacticalEngine.prototype._enterEditorState = function()
 {
-	this._currentTerrain = new TerrainMap(48,32,48);
+	this._currentTerrain = new TerrainMap(32,32,32);
 	this._currentTerrain.init();
 	//this._currentTerrain.randomGround(25);
 	this._currentTerrain.getMesh().regenerate();

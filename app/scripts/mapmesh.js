@@ -5,19 +5,35 @@ import TerrainMap from "./map"; // jshint ignore:line
 export const TILE_WIDTH = 1;
 export const TILE_HEIGHT = 1;
 
-function _applyVertColors(geom, color)
+const MAX_MAP_DIMENSION = 32;
+
+const box = new THREE.BoxBufferGeometry(TILE_WIDTH, TILE_HEIGHT, TILE_WIDTH);
+const VERT_COUNT = box.attributes.position.array.length;
+const boxVerts = box.attributes.position.array;
+
+const INDEX_COUNT = box.index.array.length;
+const is = new Uint16Array(Math.pow(MAX_MAP_DIMENSION, 3) * INDEX_COUNT);
+const indexBuffer = new THREE.BufferAttribute(is, 1);
+
+debugger;
+
+function genIs()
 {
-	const faces = geom.faces;
-	const len = faces.length;
-	for (let i = 0; i < len; i++)
+	const source = box.index.array;
+	const chunks = is.length / INDEX_COUNT;
+	const faceCount = box.attributes.position.count;
+	for (let i = 0; i < chunks; i++)
 	{
-		let face = faces[i];
-		for (let j = 0; j < 3; j++)
+		let offset = i * faceCount;
+		let base = i * INDEX_COUNT;
+		for (let j = 0; j < INDEX_COUNT; j++)
 		{
-			face.vertexColors[j] = color;
+			is[base + j] = source[j] + offset;
 		}
 	}
 }
+
+genIs();
 
 /**
  *
@@ -50,7 +66,19 @@ export default function TerrainMapMesh(mapData)
 
 TerrainMapMesh.prototype.init = function()
 {
-
+	const blank = new Float32Array(0);
+	this._geometry.addAttribute("position", new THREE.BufferAttribute(blank, 3));
+	this._geometry.addAttribute("color", new THREE.BufferAttribute(blank, 3));
+	this._pickingGeometry.addAttribute("position",
+		new THREE.BufferAttribute(blank, 3));
+	this._pickingGeometry.addAttribute("color",
+		new THREE.BufferAttribute(blank, 3));
+	this._geometry.setIndex(indexBuffer);
+	this._pickingGeometry.setIndex(indexBuffer);
+	this._geometry.setDrawRange(0, 0);
+	this._pickingGeometry.setDrawRange(0, 0);
+	this._geometry.index.needsUpdate = true;
+	this._pickingGeometry.index.needsUpdate = true;
 };
 
 TerrainMapMesh.prototype.destroy = function()
@@ -71,25 +99,52 @@ TerrainMapMesh.prototype.destroy = function()
 TerrainMapMesh.prototype.regenerate = function()
 {
 	console.time("TerrainMap::regenerate()");
-	const newGeometry = new THREE.Geometry();
-	const pickingGeom = new THREE.Geometry();
 	const d = this._map.depth();
 	const h = this._map.height();
 	const w = this._map.width();
-	const boxGeom = new THREE.BoxGeometry(TILE_WIDTH, TILE_HEIGHT, TILE_WIDTH);
-	const color = new THREE.Color();
-	const matrix = new THREE.Matrix4();
-	const quaternion = new THREE.Quaternion();
 
-	const scale = new THREE.Vector3();
-	scale.x = 1;
-	scale.y = 1;
-	scale.z = 1;
-
+	const tileCount = this._map.getTileCount();
 	const data = this._map.getData();
 
+	const vertexCount = VERT_COUNT * tileCount;
+
+	let positionArray, colorArray, pickArray;
+
+	if (this._geometry.attributes.position.array.length < vertexCount)
+	{
+		console.log("allocating new array with", vertexCount, "verts");
+
+		positionArray = new Float32Array(vertexCount);
+		colorArray = new Float32Array(vertexCount);
+		pickArray = new Float32Array(vertexCount);
+
+		this._geometry.attributes.position.setArray(positionArray);
+		this._pickingGeometry.attributes.position.setArray(positionArray);
+		this._geometry.attributes.color.setArray(colorArray);
+		this._pickingGeometry.attributes.color.setArray(pickArray);
+
+		this._geometry.attributes.position.updateRange.count = -1;
+		this._pickingGeometry.attributes.position.updateRange.count = -1;
+		this._geometry.attributes.color.updateRange.count = -1;
+		this._pickingGeometry.attributes.color.updateRange.count = -1;
+	}
+	else
+	{
+		positionArray = this._geometry.attributes.position.array;
+		colorArray = this._geometry.attributes.color.array;
+		pickArray = this._pickingGeometry.attributes.color.array;
+
+		this._geometry.attributes.position.updateRange.count = vertexCount;
+		this._pickingGeometry.attributes.position.updateRange.count = vertexCount;
+		this._geometry.attributes.color.updateRange.count = vertexCount;
+		this._pickingGeometry.attributes.color.updateRange.count = vertexCount;
+	}
+
+	const color = new THREE.Color();
+	const pickColor = new THREE.Color();
+
 	let generated = 0;
-	let position = new THREE.Vector3();
+	let px, py, pz;
 
 	let zOffset = 0;
 	let offset = 0;
@@ -109,30 +164,46 @@ TerrainMapMesh.prototype.regenerate = function()
 					continue;
 				}
 
+				px = x * TILE_WIDTH;
+				py = y * TILE_HEIGHT;
+				pz = z * TILE_WIDTH;
+
+				color.setHSL(0.3, Math.random(), 0.5);
+				pickColor.setHex(idx + 1);
+
+				let start = generated * VERT_COUNT;
+				for (let i = 0; i < VERT_COUNT; i += 3)
+				{
+					positionArray[start + i] = boxVerts[i] + px;
+					positionArray[start + i + 1] = boxVerts[i + 1] + py;
+					positionArray[start + i + 2] = boxVerts[i + 2] + pz;
+
+					colorArray[start + i] = color.r;
+					colorArray[start + i + 1] = color.g;
+					colorArray[start + i + 2] = color.b;
+
+					pickArray[start + i] = pickColor.r;
+					pickArray[start + i + 1] = pickColor.g;
+					pickArray[start + i + 2] = pickColor.b;
+				}
+
 				generated++;
-
-				position.x = x * TILE_WIDTH;
-				position.y = y * TILE_HEIGHT;
-				position.z = z * TILE_WIDTH;
-				matrix.compose(position, quaternion, scale);
-				// give the geom's vertices a random color, to be displayed
-				_applyVertColors(boxGeom, color.setHSL(0.3, Math.random(), 0.5));
-				newGeometry.merge(boxGeom, matrix);
-
-				// +1 because zero indicates no object present
-				_applyVertColors(boxGeom, color.setHex(idx + 1));
-				pickingGeom.merge(boxGeom, matrix);
-
 			}
 		}
 	}
-	newGeometry.mergeVertices();
-	pickingGeom.mergeVertices();
-	this._geometry.fromGeometry(newGeometry);
-	this._pickingGeometry.fromGeometry(pickingGeom);
+
+	const indexCount = INDEX_COUNT * tileCount;
+	this._geometry.setDrawRange(0, indexCount);
+	this._pickingGeometry.setDrawRange(0, indexCount);
+
+	this._geometry.attributes.position.needsUpdate = true;
+	this._pickingGeometry.attributes.position.needsUpdate = true;
+	this._geometry.attributes.color.needsUpdate = true;
+	this._pickingGeometry.attributes.color.needsUpdate = true;
 
 	this._geometry.computeBoundingSphere();
 	this._pickingGeometry.computeBoundingSphere();
+
 	console.timeEnd("TerrainMap::regenerate()");
 };
 
