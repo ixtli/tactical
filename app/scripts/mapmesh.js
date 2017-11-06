@@ -5,27 +5,26 @@ import TerrainMap from "./map"; // jshint ignore:line
 export const TILE_WIDTH = 1;
 export const TILE_HEIGHT = 1;
 
-const MAX_MAP_DIMENSION = 32;
+const MAX_CHUNK_WIDTH = 32;
+const MAX_CHUNK_DEPTH = 32;
+const MAX_CHUNK_HEIGHT = 16;
 
 const box = new THREE.BoxBufferGeometry(TILE_WIDTH, TILE_HEIGHT, TILE_WIDTH);
 const VERT_COUNT = box.attributes.position.array.length;
 const boxVerts = box.attributes.position.array;
 
 const INDEX_COUNT = box.index.array.length;
-const is = new Uint16Array(Math.pow(MAX_MAP_DIMENSION, 3) * INDEX_COUNT);
+const is = new Uint32Array(Math.pow(MAX_CHUNK_DEPTH, 3) * INDEX_COUNT);
 const indexBuffer = new THREE.BufferAttribute(is, 1);
-
-debugger;
 
 function genIs()
 {
 	const source = box.index.array;
 	const chunks = is.length / INDEX_COUNT;
 	const faceCount = box.attributes.position.count;
-	for (let i = 0; i < chunks; i++)
+	let base = 0, offset = 0;
+	for (let i = 0; i < chunks; i++, base += INDEX_COUNT, offset = i * faceCount)
 	{
-		let offset = i * faceCount;
-		let base = i * INDEX_COUNT;
 		for (let j = 0; j < INDEX_COUNT; j++)
 		{
 			is[base + j] = source[j] + offset;
@@ -58,6 +57,27 @@ export default function TerrainMapMesh(mapData)
 
 	/**
 	 *
+	 * @type {BufferAttribute}
+	 * @private
+	 */
+	this._positionBuffer = new THREE.BufferAttribute(new Float32Array(0), 3);
+
+	/**
+	 *
+	 * @type {BufferAttribute}
+	 * @private
+	 */
+	this._colorBuffer = new THREE.BufferAttribute(new Float32Array(0), 3);
+
+	/**
+	 *
+	 * @type {BufferAttribute}
+	 * @private
+	 */
+	this._pickColorBuffer = new THREE.BufferAttribute(new Float32Array(0), 3);
+
+	/**
+	 *
 	 * @type {TerrainMap}
 	 * @private
 	 */
@@ -66,19 +86,14 @@ export default function TerrainMapMesh(mapData)
 
 TerrainMapMesh.prototype.init = function()
 {
-	const blank = new Float32Array(0);
-	this._geometry.addAttribute("position", new THREE.BufferAttribute(blank, 3));
-	this._geometry.addAttribute("color", new THREE.BufferAttribute(blank, 3));
-	this._pickingGeometry.addAttribute("position",
-		new THREE.BufferAttribute(blank, 3));
-	this._pickingGeometry.addAttribute("color",
-		new THREE.BufferAttribute(blank, 3));
+	this._geometry.addAttribute("position", this._positionBuffer);
+	this._geometry.addAttribute("color", this._colorBuffer);
+	this._pickingGeometry.addAttribute("position", this._positionBuffer);
+	this._pickingGeometry.addAttribute("color", this._pickColorBuffer);
 	this._geometry.setIndex(indexBuffer);
 	this._pickingGeometry.setIndex(indexBuffer);
 	this._geometry.setDrawRange(0, 0);
 	this._pickingGeometry.setDrawRange(0, 0);
-	this._geometry.index.needsUpdate = true;
-	this._pickingGeometry.index.needsUpdate = true;
 };
 
 TerrainMapMesh.prototype.destroy = function()
@@ -112,21 +127,23 @@ TerrainMapMesh.prototype.regenerate = function()
 
 	if (this._geometry.attributes.position.array.length < vertexCount)
 	{
-		console.log("allocating new array with", vertexCount, "verts");
+		const b = vertexCount * 4 * 3;
+		console.log("allocating new array with",
+			vertexCount,
+			"verts",
+			`${b / 1000000}mb`);
 
 		positionArray = new Float32Array(vertexCount);
 		colorArray = new Float32Array(vertexCount);
 		pickArray = new Float32Array(vertexCount);
 
-		this._geometry.attributes.position.setArray(positionArray);
-		this._pickingGeometry.attributes.position.setArray(positionArray);
-		this._geometry.attributes.color.setArray(colorArray);
-		this._pickingGeometry.attributes.color.setArray(pickArray);
+		this._positionBuffer.setArray(positionArray);
+		this._colorBuffer.setArray(colorArray);
+		this._pickColorBuffer.setArray(pickArray);
 
-		this._geometry.attributes.position.updateRange.count = -1;
-		this._pickingGeometry.attributes.position.updateRange.count = -1;
-		this._geometry.attributes.color.updateRange.count = -1;
-		this._pickingGeometry.attributes.color.updateRange.count = -1;
+		this._positionBuffer.updateRange.count = -1;
+		this._colorBuffer.updateRange.count = -1;
+		this._pickColorBuffer.updateRange.count = -1;
 	}
 	else
 	{
@@ -134,10 +151,9 @@ TerrainMapMesh.prototype.regenerate = function()
 		colorArray = this._geometry.attributes.color.array;
 		pickArray = this._pickingGeometry.attributes.color.array;
 
-		this._geometry.attributes.position.updateRange.count = vertexCount;
-		this._pickingGeometry.attributes.position.updateRange.count = vertexCount;
-		this._geometry.attributes.color.updateRange.count = vertexCount;
-		this._pickingGeometry.attributes.color.updateRange.count = vertexCount;
+		this._positionBuffer.updateRange.count = vertexCount;
+		this._colorBuffer.updateRange.count = vertexCount;
+		this._pickColorBuffer.updateRange.count = vertexCount;
 	}
 
 	const color = new THREE.Color();
@@ -192,17 +208,13 @@ TerrainMapMesh.prototype.regenerate = function()
 		}
 	}
 
-	const indexCount = INDEX_COUNT * tileCount;
-	this._geometry.setDrawRange(0, indexCount);
-	this._pickingGeometry.setDrawRange(0, indexCount);
+	this._geometry.setDrawRange(0, INDEX_COUNT * tileCount);
 
-	this._geometry.attributes.position.needsUpdate = true;
-	this._pickingGeometry.attributes.position.needsUpdate = true;
-	this._geometry.attributes.color.needsUpdate = true;
-	this._pickingGeometry.attributes.color.needsUpdate = true;
+	this._positionBuffer.needsUpdate = true;
+	this._pickColorBuffer.needsUpdate = true;
+	this._colorBuffer.needsUpdate = true;
 
 	this._geometry.computeBoundingSphere();
-	this._pickingGeometry.computeBoundingSphere();
 
 	console.timeEnd("TerrainMap::regenerate()");
 };
