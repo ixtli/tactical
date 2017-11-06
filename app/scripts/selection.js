@@ -756,6 +756,12 @@ SelectionManager.prototype._keyPress = function(event)
 		case "Space":
 			this.toggleSelection();
 			break;
+		case "Equal":
+			this.addSelection();
+			break;
+		case "Minus":
+			this.removeSelection();
+			break;
 		default:
 			console.log(event.key);
 			return;
@@ -777,6 +783,16 @@ SelectionManager.prototype._keyPress = function(event)
 SelectionManager.prototype.toggleSelection = function()
 {
 	emit("select.toggle", [this._primarySelection, this._secondarySelection]);
+};
+
+SelectionManager.prototype.addSelection = function()
+{
+	emit("select.add", [this._primarySelection, this._secondarySelection]);
+};
+
+SelectionManager.prototype.removeSelection = function()
+{
+	emit("select.remove", [this._primarySelection, this._secondarySelection]);
 };
 
 /**

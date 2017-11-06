@@ -5,8 +5,8 @@ import TerrainMap from "./map"; // jshint ignore:line
 export const TILE_WIDTH = 1;
 export const TILE_HEIGHT = 1;
 
-const MAX_CHUNK_WIDTH = 32;
-const MAX_CHUNK_DEPTH = 32;
+const MAX_CHUNK_WIDTH = 64;
+const MAX_CHUNK_DEPTH = 64;
 const MAX_CHUNK_HEIGHT = 16;
 
 const box = new THREE.BoxBufferGeometry(TILE_WIDTH, TILE_HEIGHT, TILE_WIDTH);
@@ -14,11 +14,13 @@ const VERT_COUNT = box.attributes.position.array.length;
 const boxVerts = box.attributes.position.array;
 
 const INDEX_COUNT = box.index.array.length;
-const is = new Uint32Array(Math.pow(MAX_CHUNK_DEPTH, 3) * INDEX_COUNT);
+const is = new Uint32Array(MAX_CHUNK_WIDTH * MAX_CHUNK_HEIGHT *
+	MAX_CHUNK_DEPTH * INDEX_COUNT);
 const indexBuffer = new THREE.BufferAttribute(is, 1);
 
 function genIs()
 {
+	console.time(`Generate index buffer for ${is.length} indices.`);
 	const source = box.index.array;
 	const chunks = is.length / INDEX_COUNT;
 	const faceCount = box.attributes.position.count;
@@ -30,6 +32,7 @@ function genIs()
 			is[base + j] = source[j] + offset;
 		}
 	}
+	console.timeEnd(`Generate index buffer for ${is.length} indices.`);
 }
 
 genIs();
@@ -147,9 +150,9 @@ TerrainMapMesh.prototype.regenerate = function()
 	}
 	else
 	{
-		positionArray = this._geometry.attributes.position.array;
-		colorArray = this._geometry.attributes.color.array;
-		pickArray = this._pickingGeometry.attributes.color.array;
+		positionArray = this._positionBuffer.array;
+		colorArray = this._colorBuffer.array;
+		pickArray = this._pickColorBuffer.array;
 
 		this._positionBuffer.updateRange.count = vertexCount;
 		this._colorBuffer.updateRange.count = vertexCount;
@@ -208,13 +211,14 @@ TerrainMapMesh.prototype.regenerate = function()
 		}
 	}
 
-	this._geometry.setDrawRange(0, INDEX_COUNT * tileCount);
-
+	const drawRange = INDEX_COUNT * tileCount;
+	this._geometry.setDrawRange(0, drawRange);
+	this._pickingGeometry.setDrawRange(0, drawRange);
 	this._positionBuffer.needsUpdate = true;
 	this._pickColorBuffer.needsUpdate = true;
 	this._colorBuffer.needsUpdate = true;
-
 	this._geometry.computeBoundingSphere();
+	this._pickingGeometry.boundingSphere = this._geometry.boundingSphere;
 
 	console.timeEnd("TerrainMap::regenerate()");
 };

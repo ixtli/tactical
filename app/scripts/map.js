@@ -61,17 +61,58 @@ export default function TerrainMap(w, h, d)
 TerrainMap.prototype.init = function()
 {
 	this._mesh.init();
-	subscribe("select.toggle", this, this._toggleTile);
+	subscribe("select.toggle", this, this.toggleBetween);
+	subscribe("select.add", this, this.addBetween);
+	subscribe("select.remove", this, this.removeBetween);
 };
 
 TerrainMap.prototype.destroy = function()
 {
-	unsubscribe("select.toggle", this, this._toggleTile);
+	unsubscribe("select.toggle", this, this.toggleBetween);
+	unsubscribe("select.add", this, this.addBetween);
+	unsubscribe("select.remove", this, this.removeBetween);
 	this._data = null;
 	this._mesh.destroy();
 };
 
-TerrainMap.prototype._toggleTile = function(vec1, vec2)
+/**
+ *
+ * @param {Vector3} vec1
+ * @param {Vector3} vec2
+ */
+TerrainMap.prototype.toggleBetween = function(vec1, vec2)
+{
+	this._changeBetween(vec1, vec2, (old) => old ? 0 : 1);
+};
+
+/**
+ *
+ * @param {Vector3} vec1
+ * @param {Vector3} vec2
+ */
+TerrainMap.prototype.addBetween = function(vec1, vec2)
+{
+	this._changeBetween(vec1, vec2, () => 1);
+};
+
+/**
+ *
+ * @param {Vector3} vec1
+ * @param {Vector3} vec2
+ */
+TerrainMap.prototype.removeBetween = function(vec1, vec2)
+{
+	this._changeBetween(vec1, vec2, () => 0);
+};
+
+/**
+ *
+ * @param {Vector3} vec1
+ * @param {Vector3} vec2
+ * @param {Function} fxn
+ * @private
+ */
+TerrainMap.prototype._changeBetween = function(vec1, vec2, fxn)
 {
 	const d = this._depth;
 	const h = this._height;
@@ -102,23 +143,24 @@ TerrainMap.prototype._toggleTile = function(vec1, vec2)
 			offset = zOffset + y * w;
 			for (let x = xMin; x <= xMax; x++)
 			{
-				let old = data[offset + x];
-				let val = old ? 0 : 1;
+				let oldValue = data[offset + x];
+				let newValue = fxn(oldValue);
 
-				if (old !== val)
+				if (oldValue === newValue)
 				{
-					this._tileCount += val ? 1 : -1;
+					continue;
 				}
 
-				data[offset + x] = val;
+				this._tileCount += newValue ? 1 : -1;
+				data[offset + x] = newValue;
 				tilesModified++;
 			}
 		}
 	}
 
-	this._mesh.regenerate();
+	console.log(this._tileCount);
 
-	console.log("Toggled", tilesModified, "tiles.");
+	this._mesh.regenerate();
 };
 
 /**
