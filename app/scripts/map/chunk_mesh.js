@@ -1,6 +1,6 @@
 import * as THREE from "../../../bower_components/three.js/build/three.module";
 
-import TerrainMap from "./map"; // jshint ignore:line
+import TerrainMap from "./chunk"; // jshint ignore:line
 
 export const TILE_WIDTH = 1;
 export const TILE_HEIGHT = 1;

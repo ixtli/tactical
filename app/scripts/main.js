@@ -5,7 +5,7 @@ import EditorHUD from "./editor_hud";
 import HUD from "./hud"; // jshint ignore:line
 import {subscribe} from "./bus";
 import generateFSM, {START} from "./state_machine";
-import TerrainMap from "./map/map";
+import TerrainMap from "./map/chunk";
 
 /**
  *

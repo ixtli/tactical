@@ -1,5 +1,5 @@
 import * as THREE from "../../../bower_components/three.js/build/three.module";
-import TerrainMapMesh from "./mapmesh";
+import TerrainMapMesh from "./chunk_mesh";
 import {subscribe, unsubscribe} from "../bus";
 
 /**
