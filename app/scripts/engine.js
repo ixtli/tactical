@@ -1,6 +1,5 @@
 import * as THREE from "../../bower_components/three.js/build/three.module";
 import generateDebounce from "./debounce";
-import TerrainMap from "./map/chunk"; // jshint ignore:line
 import {TILE_HEIGHT, TILE_WIDTH} from "./map/chunk_mesh";
 import TWEEN from "./Tween";
 import {emit, emitb} from "./bus";
@@ -222,7 +221,7 @@ export default function Engine(container, options)
 
 	/**
 	 *
-	 * @type {null|TerrainMap}
+	 * @type {null|Chunk}
 	 * @private
 	 */
 	this._currentMap = null;
@@ -426,7 +425,7 @@ Engine.prototype.mapBoundingCubeVisible = function(visible)
 
 /**
  *
- * @param {TerrainMap} newMap
+ * @param {Chunk} newMap
  */
 Engine.prototype.useMap = function(newMap)
 {
@@ -862,7 +861,7 @@ Engine.prototype._updateCameraFacingDirection = function()
 
 /**
  *
- * @returns {null|TerrainMap}
+ * @returns {null|Chunk}
  */
 Engine.prototype.getCurrentMap = function()
 {

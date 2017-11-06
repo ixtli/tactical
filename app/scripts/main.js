@@ -5,7 +5,7 @@ import EditorHUD from "./editor_hud";
 import HUD from "./hud"; // jshint ignore:line
 import {subscribe} from "./bus";
 import generateFSM, {START} from "./state_machine";
-import TerrainMap from "./map/chunk";
+import Chunk from "./map/chunk";
 
 /**
  *
@@ -83,7 +83,7 @@ export default function TacticalEngine(container)
 
 	/**
 	 *
-	 * @type {TerrainMap}
+	 * @type {Chunk}
 	 * @private
 	 */
 	this._currentTerrain = null;
@@ -192,7 +192,7 @@ TacticalEngine.prototype._leaveEditorState = function()
  */
 TacticalEngine.prototype._enterEditorState = function()
 {
-	this._currentTerrain = new TerrainMap(32,32,32);
+	this._currentTerrain = new Chunk(64,16,64);
 	this._currentTerrain.init();
 	//this._currentTerrain.randomGround(25);
 	this._currentTerrain.getMesh().regenerate();

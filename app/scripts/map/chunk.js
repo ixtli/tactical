@@ -1,5 +1,8 @@
 import * as THREE from "../../../bower_components/three.js/build/three.module";
-import TerrainMapMesh from "./chunk_mesh";
+import TerrainMapMesh, {
+	MAX_CHUNK_DEPTH, MAX_CHUNK_HEIGHT,
+	MAX_CHUNK_WIDTH
+} from "./chunk_mesh";
 import {subscribe, unsubscribe} from "../bus";
 
 /**
@@ -9,11 +12,14 @@ import {subscribe, unsubscribe} from "../bus";
  * @param {number} d
  * @constructor
  */
-export default function TerrainMap(w, h, d)
+export default function Chunk(w, h, d)
 {
 	console.assert(w > 0, "Map width must be positive.");
 	console.assert(h > 0, "Map height must be positive.");
 	console.assert(d > 0, "Map depth must be positive.");
+	console.assert(w <= MAX_CHUNK_WIDTH, "Map too wide: " + w);
+	console.assert(h <= MAX_CHUNK_HEIGHT, "Map too high: " + h);
+	console.assert(d <= MAX_CHUNK_DEPTH, "Map too deep: " + d);
 
 	/**
 	 *
@@ -45,7 +51,7 @@ export default function TerrainMap(w, h, d)
 
 	/**
 	 *
-	 * @type {TerrainMapMesh}
+	 * @type {ChunkMesh}
 	 * @private
 	 */
 	this._mesh = new TerrainMapMesh(this);
@@ -58,7 +64,7 @@ export default function TerrainMap(w, h, d)
 	this._tileCount = 0;
 }
 
-TerrainMap.prototype.init = function()
+Chunk.prototype.init = function()
 {
 	this._mesh.init();
 	subscribe("select.toggle", this, this.toggleBetween);
@@ -66,7 +72,7 @@ TerrainMap.prototype.init = function()
 	subscribe("select.remove", this, this.removeBetween);
 };
 
-TerrainMap.prototype.destroy = function()
+Chunk.prototype.destroy = function()
 {
 	unsubscribe("select.toggle", this, this.toggleBetween);
 	unsubscribe("select.add", this, this.addBetween);
@@ -80,7 +86,7 @@ TerrainMap.prototype.destroy = function()
  * @param {Vector3} vec1
  * @param {Vector3} vec2
  */
-TerrainMap.prototype.toggleBetween = function(vec1, vec2)
+Chunk.prototype.toggleBetween = function(vec1, vec2)
 {
 	this._changeBetween(vec1, vec2, (old) => old ? 0 : 1);
 };
@@ -90,7 +96,7 @@ TerrainMap.prototype.toggleBetween = function(vec1, vec2)
  * @param {Vector3} vec1
  * @param {Vector3} vec2
  */
-TerrainMap.prototype.addBetween = function(vec1, vec2)
+Chunk.prototype.addBetween = function(vec1, vec2)
 {
 	this._changeBetween(vec1, vec2, () => 1);
 };
@@ -100,7 +106,7 @@ TerrainMap.prototype.addBetween = function(vec1, vec2)
  * @param {Vector3} vec1
  * @param {Vector3} vec2
  */
-TerrainMap.prototype.removeBetween = function(vec1, vec2)
+Chunk.prototype.removeBetween = function(vec1, vec2)
 {
 	this._changeBetween(vec1, vec2, () => 0);
 };
@@ -112,7 +118,7 @@ TerrainMap.prototype.removeBetween = function(vec1, vec2)
  * @param {Function} fxn
  * @private
  */
-TerrainMap.prototype._changeBetween = function(vec1, vec2, fxn)
+Chunk.prototype._changeBetween = function(vec1, vec2, fxn)
 {
 	const d = this._depth;
 	const h = this._height;
@@ -168,7 +174,7 @@ TerrainMap.prototype._changeBetween = function(vec1, vec2, fxn)
  * @param {Vector3} vec
  * @private
  */
-TerrainMap.prototype._toggleSingleTile = function(vec)
+Chunk.prototype._toggleSingleTile = function(vec)
 {
 	if (vec.x < 0 || vec.y < 0 || vec.z < 0)
 	{
@@ -192,7 +198,7 @@ TerrainMap.prototype._toggleSingleTile = function(vec)
  *
  * @param {Vector3} vec
  */
-TerrainMap.prototype.inBounds = function(vec)
+Chunk.prototype.inBounds = function(vec)
 {
 	if (vec.x < 0 || vec.y < 0 || vec.z < 0)
 	{
@@ -209,7 +215,7 @@ TerrainMap.prototype.inBounds = function(vec)
  * @param {number} id
  * @returns {Vector3}
  */
-TerrainMap.prototype.tileForID = function(id)
+Chunk.prototype.tileForID = function(id)
 {
 	if (id > this._data.length || !this._data[id])
 	{
@@ -230,7 +236,7 @@ TerrainMap.prototype.tileForID = function(id)
  *
  * @returns {Uint16Array}
  */
-TerrainMap.prototype.getData = function()
+Chunk.prototype.getData = function()
 {
 	return this._data;
 };
@@ -239,7 +245,7 @@ TerrainMap.prototype.getData = function()
  * How tall the map is
  * @returns {number}
  */
-TerrainMap.prototype.height = function()
+Chunk.prototype.height = function()
 {
 	return this._height;
 };
@@ -248,7 +254,7 @@ TerrainMap.prototype.height = function()
  * How wide the map is
  * @returns {number}
  */
-TerrainMap.prototype.width = function()
+Chunk.prototype.width = function()
 {
 	return this._width;
 };
@@ -257,16 +263,16 @@ TerrainMap.prototype.width = function()
  * How deep into the scene the map goes
  * @returns {number}
  */
-TerrainMap.prototype.depth = function()
+Chunk.prototype.depth = function()
 {
 	return this._depth;
 };
 
 /**
  *
- * @returns {TerrainMapMesh}
+ * @returns {ChunkMesh}
  */
-TerrainMap.prototype.getMesh = function()
+Chunk.prototype.getMesh = function()
 {
 	return this._mesh;
 };
@@ -275,7 +281,7 @@ TerrainMap.prototype.getMesh = function()
  *
  * @returns {number}
  */
-TerrainMap.prototype.getTileCount = function()
+Chunk.prototype.getTileCount = function()
 {
 	return this._tileCount;
 };

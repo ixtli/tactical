@@ -1,13 +1,12 @@
 import * as THREE from "../../../bower_components/three.js/build/three.module";
 
-import TerrainMap from "./chunk"; // jshint ignore:line
+import Chunk from "./chunk"; // jshint ignore:line
 
 export const TILE_WIDTH = 1;
 export const TILE_HEIGHT = 1;
-
-const MAX_CHUNK_WIDTH = 64;
-const MAX_CHUNK_DEPTH = 64;
-const MAX_CHUNK_HEIGHT = 16;
+export const MAX_CHUNK_WIDTH = 64;
+export const MAX_CHUNK_DEPTH = 64;
+export const MAX_CHUNK_HEIGHT = 16;
 
 const box = new THREE.BoxBufferGeometry(TILE_WIDTH, TILE_HEIGHT, TILE_WIDTH);
 const VERT_COUNT = box.attributes.position.array.length;
@@ -39,10 +38,10 @@ genIs();
 
 /**
  *
- * @param {TerrainMap} mapData
+ * @param {Chunk} mapData
  * @constructor
  */
-export default function TerrainMapMesh(mapData)
+export default function ChunkMesh(mapData)
 {
 	/**
 	 *
@@ -81,13 +80,13 @@ export default function TerrainMapMesh(mapData)
 
 	/**
 	 *
-	 * @type {TerrainMap}
+	 * @type {Chunk}
 	 * @private
 	 */
 	this._map = mapData;
 }
 
-TerrainMapMesh.prototype.init = function()
+ChunkMesh.prototype.init = function()
 {
 	this._geometry.addAttribute("position", this._positionBuffer);
 	this._geometry.addAttribute("color", this._colorBuffer);
@@ -99,7 +98,7 @@ TerrainMapMesh.prototype.init = function()
 	this._pickingGeometry.setDrawRange(0, 0);
 };
 
-TerrainMapMesh.prototype.destroy = function()
+ChunkMesh.prototype.destroy = function()
 {
 	if (this._geometry)
 	{
@@ -114,9 +113,9 @@ TerrainMapMesh.prototype.destroy = function()
 	}
 };
 
-TerrainMapMesh.prototype.regenerate = function()
+ChunkMesh.prototype.regenerate = function()
 {
-	console.time("TerrainMap::regenerate()");
+	console.time("Chunk::regenerate()");
 	const d = this._map.depth();
 	const h = this._map.height();
 	const w = this._map.width();
@@ -220,6 +219,6 @@ TerrainMapMesh.prototype.regenerate = function()
 	this._geometry.computeBoundingSphere();
 	this._pickingGeometry.boundingSphere = this._geometry.boundingSphere;
 
-	console.timeEnd("TerrainMap::regenerate()");
+	console.timeEnd("Chunk::regenerate()");
 };
 
