@@ -480,7 +480,7 @@ Engine.prototype.resetCamera = function()
 	this.orbitImmediate(45);
 	this.lookAt(new THREE.Vector3(Math.floor(map.width() / 2),
 		0,
-		Math.floor(map.height() / 2)), 0);
+		Math.floor(map.depth() / 2)), 0);
 	this.zoom(START_ZOOM, 0);
 	emit("engine.camera.reset", []);
 };

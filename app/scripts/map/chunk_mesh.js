@@ -10,31 +10,29 @@ export const MAX_CHUNK_HEIGHT = 16;
 
 const box = new THREE.BoxBufferGeometry(TILE_WIDTH, TILE_HEIGHT, TILE_WIDTH);
 const VERT_COUNT = box.attributes.position.array.length;
-const boxVerts = box.attributes.position.array;
-
 const INDEX_COUNT = box.index.array.length;
-const is = new Uint32Array(MAX_CHUNK_WIDTH * MAX_CHUNK_HEIGHT *
+const indexArray = new Uint32Array(MAX_CHUNK_WIDTH * MAX_CHUNK_HEIGHT *
 	MAX_CHUNK_DEPTH * INDEX_COUNT);
-const indexBuffer = new THREE.BufferAttribute(is, 1);
+const indexBuffer = new THREE.BufferAttribute(indexArray, 1);
 
-function genIs()
+function generateIndexBufferValues()
 {
-	console.time(`Generate index buffer for ${is.length} indices.`);
+	console.time(`Generate index buffer for ${indexArray.length} indices.`);
 	const source = box.index.array;
-	const chunks = is.length / INDEX_COUNT;
+	const chunks = indexArray.length / INDEX_COUNT;
 	const faceCount = box.attributes.position.count;
 	let base = 0, offset = 0;
 	for (let i = 0; i < chunks; i++, base += INDEX_COUNT, offset = i * faceCount)
 	{
 		for (let j = 0; j < INDEX_COUNT; j++)
 		{
-			is[base + j] = source[j] + offset;
+			indexArray[base + j] = source[j] + offset;
 		}
 	}
-	console.timeEnd(`Generate index buffer for ${is.length} indices.`);
+	console.timeEnd(`Generate index buffer for ${indexArray.length} indices.`);
 }
 
-genIs();
+generateIndexBufferValues();
 
 /**
  *
@@ -166,6 +164,7 @@ ChunkMesh.prototype.regenerate = function()
 	const positionArray = this._positionBuffer.array;
 	const colorArray = this._colorBuffer.array;
 	const pickArray = this._pickColorBuffer.array;
+	const boxVerts = box.attributes.position.array;
 
 	const color = new THREE.Color();
 	const pickColor = new THREE.Color();
