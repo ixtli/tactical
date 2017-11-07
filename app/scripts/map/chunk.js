@@ -1,7 +1,6 @@
 import * as THREE from "../../../bower_components/three.js/build/three.module";
-import TerrainMapMesh, {
-	MAX_CHUNK_DEPTH, MAX_CHUNK_HEIGHT,
-	MAX_CHUNK_WIDTH
+import ChunkMesh, {
+	MAX_CHUNK_DEPTH, MAX_CHUNK_HEIGHT, MAX_CHUNK_WIDTH
 } from "./chunk_mesh";
 import {subscribe, unsubscribe} from "../bus";
 
@@ -54,7 +53,7 @@ export default function Chunk(w, h, d)
 	 * @type {ChunkMesh}
 	 * @private
 	 */
-	this._mesh = new TerrainMapMesh(this);
+	this._mesh = new ChunkMesh(this);
 
 	/**
 	 *
