@@ -1,9 +1,8 @@
 import * as THREE from "../../../bower_components/three.js/build/three.module";
 
 import Chunk from "./chunk"; // jshint ignore:line
+import {TILE_HEIGHT, TILE_WIDTH} from "./tile";
 
-export const TILE_WIDTH = 1;
-export const TILE_HEIGHT = 1;
 export const MAX_CHUNK_WIDTH = 64;
 export const MAX_CHUNK_DEPTH = 64;
 export const MAX_CHUNK_HEIGHT = 16;

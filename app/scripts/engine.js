@@ -1,8 +1,9 @@
 import * as THREE from "../../bower_components/three.js/build/three.module";
 import generateDebounce from "./debounce";
-import {TILE_HEIGHT, TILE_WIDTH} from "./map/chunk_mesh";
+import {TILE_HEIGHT} from "./map/tile";
 import TWEEN from "./Tween";
 import {emit, emitb} from "./bus";
+import {TILE_WIDTH} from "./map/tile";
 
 /**
  *

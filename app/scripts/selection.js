@@ -1,8 +1,9 @@
 import * as THREE from "../../bower_components/three.js/build/three.module";
 import Engine, {EAST, NORTH, SOUTH, WEST} from "./engine"; // jshint ignore:line
-import {TILE_HEIGHT, TILE_WIDTH} from "./map/chunk_mesh";
+import {TILE_HEIGHT} from "./map/tile";
 import {emit, subscribe, unsubscribe} from "./bus";
 import generateFSM, {START} from "./state_machine";
+import {TILE_WIDTH} from "./map/tile";
 
 /**
  *
