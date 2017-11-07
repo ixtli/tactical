@@ -113,6 +113,44 @@ ChunkMesh.prototype.destroy = function()
 	}
 };
 
+/**
+ *
+ * @param {Number} tileCount
+ * @private
+ */
+ChunkMesh.prototype._resizeBuffers = function(tileCount)
+{
+	const oldVertexCount = this._geometry.attributes.position.array.length;
+	const vertexCount = VERT_COUNT * tileCount;
+
+	if (oldVertexCount < vertexCount)
+	{
+		console.log(`Allocating ${tileCount} tiles. (${vertexCount} verts, ` +
+			(vertexCount * 4 * 3) / 1000000 + "mb)");
+
+		this._positionBuffer.setArray(new Float32Array(vertexCount));
+		this._colorBuffer.setArray(new Float32Array(vertexCount));
+		this._pickColorBuffer.setArray(new Float32Array(vertexCount));
+
+		this._positionBuffer.updateRange.count = -1;
+		this._colorBuffer.updateRange.count = -1;
+		this._pickColorBuffer.updateRange.count = -1;
+	}
+	else
+	{
+		this._positionBuffer.updateRange.count = vertexCount;
+		this._colorBuffer.updateRange.count = vertexCount;
+		this._pickColorBuffer.updateRange.count = vertexCount;
+	}
+
+	this._positionBuffer.needsUpdate = true;
+	this._pickColorBuffer.needsUpdate = true;
+	this._colorBuffer.needsUpdate = true;
+	const drawRange = INDEX_COUNT * tileCount;
+	this._geometry.setDrawRange(0, drawRange);
+	this._pickingGeometry.setDrawRange(0, drawRange);
+};
+
 ChunkMesh.prototype.regenerate = function()
 {
 	console.time("Chunk::regenerate()");
@@ -123,40 +161,11 @@ ChunkMesh.prototype.regenerate = function()
 	const tileCount = this._map.getTileCount();
 	const data = this._map.getData();
 
-	const vertexCount = VERT_COUNT * tileCount;
+	this._resizeBuffers(tileCount);
 
-	let positionArray, colorArray, pickArray;
-
-	if (this._geometry.attributes.position.array.length < vertexCount)
-	{
-		const b = vertexCount * 4 * 3;
-		console.log("allocating new array with",
-			vertexCount,
-			"verts",
-			`${b / 1000000}mb`);
-
-		positionArray = new Float32Array(vertexCount);
-		colorArray = new Float32Array(vertexCount);
-		pickArray = new Float32Array(vertexCount);
-
-		this._positionBuffer.setArray(positionArray);
-		this._colorBuffer.setArray(colorArray);
-		this._pickColorBuffer.setArray(pickArray);
-
-		this._positionBuffer.updateRange.count = -1;
-		this._colorBuffer.updateRange.count = -1;
-		this._pickColorBuffer.updateRange.count = -1;
-	}
-	else
-	{
-		positionArray = this._positionBuffer.array;
-		colorArray = this._colorBuffer.array;
-		pickArray = this._pickColorBuffer.array;
-
-		this._positionBuffer.updateRange.count = vertexCount;
-		this._colorBuffer.updateRange.count = vertexCount;
-		this._pickColorBuffer.updateRange.count = vertexCount;
-	}
+	const positionArray = this._positionBuffer.array;
+	const colorArray = this._colorBuffer.array;
+	const pickArray = this._pickColorBuffer.array;
 
 	const color = new THREE.Color();
 	const pickColor = new THREE.Color();
@@ -210,12 +219,6 @@ ChunkMesh.prototype.regenerate = function()
 		}
 	}
 
-	const drawRange = INDEX_COUNT * tileCount;
-	this._geometry.setDrawRange(0, drawRange);
-	this._pickingGeometry.setDrawRange(0, drawRange);
-	this._positionBuffer.needsUpdate = true;
-	this._pickColorBuffer.needsUpdate = true;
-	this._colorBuffer.needsUpdate = true;
 	this._geometry.computeBoundingSphere();
 	this._pickingGeometry.boundingSphere = this._geometry.boundingSphere;
 

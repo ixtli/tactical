@@ -164,8 +164,6 @@ Chunk.prototype._changeBetween = function(vec1, vec2, fxn)
 		}
 	}
 
-	console.log(this._tileCount);
-
 	this._mesh.regenerate();
 };
 
