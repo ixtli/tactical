@@ -8,11 +8,13 @@ export const MAX_CHUNK_WIDTH = 64;
 export const MAX_CHUNK_DEPTH = 64;
 export const MAX_CHUNK_HEIGHT = 16;
 
+const MAX_TILES = MAX_CHUNK_WIDTH * MAX_CHUNK_HEIGHT * MAX_CHUNK_DEPTH;
+
 const box = new THREE.BoxBufferGeometry(TILE_WIDTH, TILE_HEIGHT, TILE_WIDTH);
 const VERT_COUNT = box.attributes.position.array.length;
 const INDEX_COUNT = box.index.array.length;
-const indexArray = new Uint32Array(MAX_CHUNK_WIDTH * MAX_CHUNK_HEIGHT *
-	MAX_CHUNK_DEPTH * INDEX_COUNT);
+const indexArray = new Uint32Array(MAX_TILES * INDEX_COUNT);
+
 const indexBuffer = new THREE.BufferAttribute(indexArray, 1);
 
 function generateIndexBufferValues()
@@ -123,30 +125,23 @@ ChunkMesh.prototype._resizeBuffers = function(tileCount)
 
 	if (oldVertexCount < vertexCount)
 	{
-		console.log(`Allocating ${tileCount} tiles. (${vertexCount} verts, ` +
-			(vertexCount * 4 * 3) / 1000000 + "mb)");
+		const buffer = Math.min(MAX_TILES, tileCount * 2);
+		const bufferVertexCount = buffer * VERT_COUNT;
+		console.log(`Allocating ${buffer} tiles. (${bufferVertexCount} verts, ` +
+			(buffer * VERT_COUNT * 4 * 3) / 1000000 + "mb)");
 
-		this._positionBuffer.setArray(new Float32Array(vertexCount));
-		this._colorBuffer.setArray(new Float32Array(vertexCount));
-		this._pickColorBuffer.setArray(new Float32Array(vertexCount));
+		this._positionBuffer.setArray(new Float32Array(bufferVertexCount));
+		this._colorBuffer.setArray(new Float32Array(bufferVertexCount));
+		this._pickColorBuffer.setArray(new Float32Array(bufferVertexCount));
+	}
 
-		this._positionBuffer.updateRange.count = -1;
-		this._colorBuffer.updateRange.count = -1;
-		this._pickColorBuffer.updateRange.count = -1;
-	}
-	else
-	{
-		this._positionBuffer.updateRange.count = vertexCount;
-		this._colorBuffer.updateRange.count = vertexCount;
-		this._pickColorBuffer.updateRange.count = vertexCount;
-	}
+	this._positionBuffer.updateRange.count = vertexCount;
+	this._colorBuffer.updateRange.count = vertexCount;
+	this._pickColorBuffer.updateRange.count = vertexCount;
 
 	this._positionBuffer.needsUpdate = true;
 	this._pickColorBuffer.needsUpdate = true;
 	this._colorBuffer.needsUpdate = true;
-	const drawRange = INDEX_COUNT * tileCount;
-	this._geometry.setDrawRange(0, drawRange);
-	this._pickingGeometry.setDrawRange(0, drawRange);
 };
 
 ChunkMesh.prototype.regenerate = function()
@@ -169,6 +164,7 @@ ChunkMesh.prototype.regenerate = function()
 	const color = new THREE.Color();
 	const pickColor = new THREE.Color();
 
+	let skipped = 0;
 	let generated = 0;
 	let px, py, pz;
 
@@ -187,6 +183,18 @@ ChunkMesh.prototype.regenerate = function()
 
 				if (datum === 0)
 				{
+					continue;
+				}
+
+				let blockLeft = (x > 0 && data[idx - 1]);
+				let blockRight = (x < w - 1 && data[idx + 1]);
+				let blockAbove = (y < h - 1 && data[idx + w]);
+				let blockIn = (z > 0 && data[idx - w * h]);
+				let blockOut = (z < d - 1 && data[idx + w * h]);
+
+				if (blockLeft && blockRight && blockAbove && blockIn && blockOut)
+				{
+					skipped++;
 					continue;
 				}
 
@@ -218,9 +226,14 @@ ChunkMesh.prototype.regenerate = function()
 		}
 	}
 
+	const drawRange = INDEX_COUNT * generated;
+	this._geometry.setDrawRange(0, drawRange);
+	this._pickingGeometry.setDrawRange(0, drawRange);
 	this._geometry.computeBoundingSphere();
 	this._pickingGeometry.boundingSphere = this._geometry.boundingSphere;
 
 	console.timeEnd("Chunk::regenerate()");
+
+	console.log("Rendered", generated, "/", tileCount, "tiles.");
 };
 
