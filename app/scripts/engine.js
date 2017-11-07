@@ -50,13 +50,7 @@ export default function Engine(container, options)
 	 * @private
 	 */
 	this._camera =
-		new THREE.OrthographicCamera(0,
-			0,
-			0,
-			0,
-			CAMERA_NEAR,
-			CAMERA_FAR,
-			this._rendererOptions);
+		new THREE.OrthographicCamera(0, 0, 0, 0, CAMERA_NEAR, CAMERA_FAR);
 
 	/**
 	 *
@@ -91,7 +85,7 @@ export default function Engine(container, options)
 	 * @type {WebGLRenderer}
 	 * @private
 	 */
-	this._renderer = new THREE.WebGLRenderer();
+	this._renderer = new THREE.WebGLRenderer(this._rendererOptions);
 
 	/**
 	 *
@@ -249,8 +243,6 @@ export default function Engine(container, options)
 		new THREE.Mesh(new THREE.PlaneBufferGeometry(SELECT_SIZE, SELECT_SIZE),
 			new THREE.MeshBasicMaterial({color: 0x202020, visible: false}));
 
-	this._selectionPlaneMesh.position.addScalar(TILE_WIDTH / -2);
-
 	/**
 	 * If true and mouseover selection fails to hit a tile, try to select an
 	 * empty tile where y = 0;
@@ -383,6 +375,7 @@ Engine.prototype.setAxisHelperVisible = function(visible)
  */
 Engine.prototype._setupScene = function()
 {
+	this._selectionPlaneMesh.position.addScalar(TILE_WIDTH / -2);
 	this.setBackgroundColor(new THREE.Color(0x8BFFF7));
 	this._pickingTexture =
 		new THREE.WebGLRenderTarget(this._windowWidth, this._windowHeight);
