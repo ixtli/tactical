@@ -13,7 +13,6 @@ const box = new THREE.BoxBufferGeometry(TILE_WIDTH, TILE_HEIGHT, TILE_WIDTH);
 const VERT_COUNT = box.attributes.position.array.length;
 const INDEX_COUNT = box.index.array.length;
 const indexArray = new Uint32Array(MAX_TILES * INDEX_COUNT);
-
 const indexBuffer = new THREE.BufferAttribute(indexArray, 1);
 
 function generateIndexBufferValues()
@@ -158,10 +157,10 @@ ChunkMesh.prototype.regenerate = function()
 	const positionArray = this._positionBuffer.array;
 	const colorArray = this._colorBuffer.array;
 	const pickArray = this._pickColorBuffer.array;
-	const boxVerts = box.attributes.position.array;
 
-	const color = new THREE.Color();
 	const pickColor = new THREE.Color();
+
+	const tileArray = this._map.getTileArray();
 
 	let skipped = 0;
 	let generated = 0;
@@ -185,6 +184,8 @@ ChunkMesh.prototype.regenerate = function()
 					continue;
 				}
 
+				let tile = tileArray[datum - 1];
+
 				let blockLeft = (x > 0 && data[idx - 1]);
 				let blockRight = (x < w - 1 && data[idx + 1]);
 				let blockAbove = (y < h - 1 && data[idx + w]);
@@ -201,24 +202,22 @@ ChunkMesh.prototype.regenerate = function()
 				py = y * TILE_HEIGHT;
 				pz = z * TILE_WIDTH;
 
-				color.setHSL(0.3, Math.random(), 0.5);
 				pickColor.setHex(idx + 1);
 
 				let start = generated * VERT_COUNT;
+				let positions = tile.positionArray;
 				for (let i = 0; i < VERT_COUNT; i += 3)
 				{
-					positionArray[start + i] = boxVerts[i] + px;
-					positionArray[start + i + 1] = boxVerts[i + 1] + py;
-					positionArray[start + i + 2] = boxVerts[i + 2] + pz;
-
-					colorArray[start + i] = color.r;
-					colorArray[start + i + 1] = color.g;
-					colorArray[start + i + 2] = color.b;
+					positionArray[start + i] = positions[i] + px;
+					positionArray[start + i + 1] = positions[i + 1] + py;
+					positionArray[start + i + 2] = positions[i + 2] + pz;
 
 					pickArray[start + i] = pickColor.r;
 					pickArray[start + i + 1] = pickColor.g;
 					pickArray[start + i + 2] = pickColor.b;
 				}
+
+				colorArray.set(tile.colorArray, start);
 
 				generated++;
 			}

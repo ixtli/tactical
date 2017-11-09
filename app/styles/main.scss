@@ -9,13 +9,11 @@ body {
 	overflow: hidden;
 }
 
-.invisible
-{
+.invisible {
 	display: none !important;
 }
 
-#hud-container
-{
+#hud-container {
 	position: absolute;
 	width: 100%;
 	bottom: 0;
@@ -24,48 +22,51 @@ body {
 	padding: 0;
 }
 
-
-.widget-container
-{
+.widget-container {
 	display: inline-block;
-	background: rgba(255,255,255, .25);
+	background: rgba(255, 255, 255, .25);
 	margin-right: 5px;
 	padding: 5px 10px;
 }
 
-.widget-container > h1
-{
+.widget-container > h1 {
 	color: white;
 	margin: 0;
 	-webkit-text-stroke: 2px black;
 	padding: 0;
 }
 
-.widget-container > h2
-{
+.widget-container > h2 {
 	color: black;
 	font-size: 18px;
 	margin: 0 0 -10px;
 	padding: 0;
 }
 
-.widget-container.status-line
-{
+.widget-container.tile-palette {
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	width: 100px;
+	height: 100px;
+	background-color: white;
+	border-radius: 5px;
+}
+
+.widget-container.status-line {
 	width: 100%;
 	height: 25px;
-	background-color: rgba(0,0,0,.8);
+	background-color: rgba(0, 0, 0, .8);
 	display: inline-block;
 	margin-top: 5px;
 	margin-bottom: -3px;
 	padding: 0 0 0 42px;
 
-	*
-	{
+	* {
 		display: inline-block;
 	}
 
-	div#logo
-	{
+	div#logo {
 		position: absolute;
 		font-size: 32px;
 		left: 3px;
@@ -73,8 +74,7 @@ body {
 		width: 32px;
 	}
 
-	h1, h2
-	{
+	h1, h2 {
 		-webkit-text-stroke: 0px;
 		color: white;
 		font-weight: 400;
@@ -83,52 +83,44 @@ body {
 		display: inline-block;
 	}
 
-	p
-	{
+	p {
 		margin: 0;
 		padding: 0 5px;
 		color: #959595;
 		font-size: 18px;
-	};
+	}
+;
 
-	h1.path-component.none
-	{
+	h1.path-component.none {
 		color: #959595;
 	}
 
-	.primary
-	{
+	.primary {
 		color: cornflowerblue;
 	}
 
-	.secondary
-	{
+	.secondary {
 		color: greenyellow;
 	}
 
-	.primary-bg
-	{
+	.primary-bg {
 		background-color: transparentize(cornflowerblue, 0.75);
 	}
 
-	.secondary-bg
-	{
+	.secondary-bg {
 		background-color: transparentize(greenyellow, 0.75);
 	}
 
-	div#selection-display
-	{
-		background-color: rgba(255,255,255, .1);
+	div#selection-display {
+		background-color: rgba(255, 255, 255, .1);
 		margin-left: 10px;
 
-		h2
-		{
+		h2 {
 			font-size: 14px;
 			font-weight: 100;
 		}
 
-		p
-		{
+		p {
 			font-weight: 900;
 			font-size: 14px;
 			padding: 2px;

@@ -3,6 +3,7 @@ import ChunkMesh, {
 	MAX_CHUNK_DEPTH, MAX_CHUNK_HEIGHT, MAX_CHUNK_WIDTH
 } from "./chunk_mesh";
 import {subscribe, unsubscribe} from "../bus";
+import Tile from "./tile";
 
 /**
  *
@@ -61,6 +62,13 @@ export default function Chunk(w, h, d)
 	 * @private
 	 */
 	this._tileCount = 0;
+
+	/**
+	 *
+	 * @type {Tile[]}
+	 * @private
+	 */
+	this._tileArray = [new Tile().init()];
 }
 
 Chunk.prototype.init = function()
@@ -281,4 +289,13 @@ Chunk.prototype.getMesh = function()
 Chunk.prototype.getTileCount = function()
 {
 	return this._tileCount;
+};
+
+/**
+ *
+ * @returns {Tile[]}
+ */
+Chunk.prototype.getTileArray = function()
+{
+	return this._tileArray;
 };

@@ -3,6 +3,7 @@ import Vec3EventWidget from "./widgets/vec3_event_widget";
 import StatusLine from "./widgets/status_line";
 import {EAST, NORTH, SOUTH, WEST} from "./engine";
 import HUD from "./hud";
+import TilePalette from "./widgets/tile_palette";
 
 /**
  *
@@ -44,6 +45,8 @@ EditorHUD.prototype.init = function()
 				return "~";
 		}
 	}));
+
+	this._add(new TilePalette());
 
 	this._add(this._statusLine);
 
