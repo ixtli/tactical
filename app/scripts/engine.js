@@ -528,6 +528,15 @@ Engine.prototype._constructRenderer = function()
 
 /**
  *
+ * @returns {Element}
+ */
+Engine.prototype.getRendererElement = function()
+{
+	return this._renderer.domElement;
+};
+
+/**
+ *
  * @private
  */
 Engine.prototype._pick = function()

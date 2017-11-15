@@ -1,3 +1,4 @@
+import WidgetSet from "./widgets/widget_set"; // jshint ignore:line
 import WidgetBase from "./widgets/base_widget"; // jshint ignore:line
 
 /**
@@ -18,20 +19,31 @@ export default function HUD()
 
 	/**
 	 *
-	 * @type {Array.<WidgetBase>}
+	 * @type {Set.<WidgetSet>}
 	 * @protected
 	 */
-	this._widgets = [];
+	this._sets = new Set();
+
+	/**
+	 *
+	 * @type {Set.<WidgetBase>}
+	 * @protected
+	 */
+	this._widgets = new Set();
 }
 
 HUD.prototype.init = function()
 {
-	const len = this._widgets.length;
-
-	for (let i = 0; i < len; i++)
+	for (let s of this._sets)
 	{
-		this._widgets[i].init();
-		this.layer.appendChild(this._widgets[i].getContainer());
+		s.initializeWidgets();
+		this.layer.appendChild(s.layer);
+	}
+
+	for (let w of this._widgets)
+	{
+		w.init();
+		this.layer.appendChild(w.getContainer());
 	}
 
 	this.layer.id = "hud-container";
@@ -39,11 +51,11 @@ HUD.prototype.init = function()
 
 HUD.prototype.destroy = function()
 {
-	const len = this._widgets.length;
+	const len = this._sets.length;
 
 	for (let i = 0; i < len; i++)
 	{
-		this._widgets[i].destroy();
+		this._sets[i].destroy();
 	}
 
 	this.layer.remove();
@@ -51,10 +63,21 @@ HUD.prototype.destroy = function()
 
 /**
  *
+ * @param {WidgetSet} widgetSet
+ * @protected
+ */
+HUD.prototype._addSet = function(widgetSet)
+{
+	this._sets.add(widgetSet);
+};
+
+/**
+ *
  * @param {WidgetBase} widget
  * @protected
  */
-HUD.prototype._add = function(widget)
+HUD.prototype._addWidget = function(widget)
 {
-	this._widgets.push(widget);
+	console.assert(!this._widgets.has(widget), `${this} already has ${widget}`);
+	this._widgets.add(widget);
 };

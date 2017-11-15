@@ -14,12 +14,24 @@ body {
 }
 
 #hud-container {
-	position: absolute;
+	position: fixed;
 	width: 100%;
-	bottom: 0;
+	height: 100%;
+	top: 0;
 	left: 0;
 	margin: 0;
 	padding: 0;
+}
+
+#hud-container > .widget-container,
+#hud-container > .widget-set
+{
+	position: absolute;
+}
+
+.widget-set#view-metrics
+{
+	bottom: 26px;
 }
 
 .widget-container {
@@ -44,7 +56,6 @@ body {
 }
 
 .widget-container.tile-palette {
-	position: absolute;
 	top: 10px;
 	left: 10px;
 	width: 100px;
@@ -61,6 +72,7 @@ body {
 	margin-top: 5px;
 	margin-bottom: -3px;
 	padding: 0 0 0 42px;
+	bottom: 0;
 
 	* {
 		display: inline-block;
