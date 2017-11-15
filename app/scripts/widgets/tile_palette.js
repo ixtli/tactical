@@ -13,8 +13,7 @@ const VIEW_SIZE = 96;
 const TILE_MATERIAL = new THREE.MeshPhongMaterial({
 	color: 0xffffff,
 	flatShading: true,
-	vertexColors: THREE.VertexColors,
-	shininess: 0
+	vertexColors: THREE.VertexColors
 });
 
 /**
@@ -100,8 +99,8 @@ TilePalette.prototype.init = function()
 
 	this._camera.left = -1;
 	this._camera.right = 1;
-	this._camera.top = -1;
-	this._camera.bottom = 1;
+	this._camera.top = 1;
+	this._camera.bottom = -1;
 	this._camera.updateProjectionMatrix();
 	this._camera.position.set(-2, 1, -2);
 	this._camera.lookAt(new THREE.Vector3());

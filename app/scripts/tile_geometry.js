@@ -1,34 +1,18 @@
 import * as THREE from "../../bower_components/three.js/build/three.module";
 
+export const TILE_WIDTH = 1;
+export const TILE_HEIGHT = 1;
+export const TILE_DEPTH = 1;
+
 /**
  *
- * @param {number} width
- * @param {number} height
- * @param {number} depth
  * @constructor
  */
-export default function TileBufferGeometry(width, height, depth)
+export default function TileBufferGeometry()
 {
 	THREE.BufferGeometry.call(this);
 
-	const widthSegments = 1;
-	const heightSegments = 1;
-	const depthSegments = 1;
-
-	this.type = "BoxBufferGeometry";
-
-	width = width || 1;
-	height = height || 1;
-	depth = depth || 1;
-
-	this.parameters = {
-		width: width,
-		height: height,
-		depth: depth,
-		widthSegments: widthSegments,
-		heightSegments: heightSegments,
-		depthSegments: depthSegments
-	};
+	this.type = "TileBufferGeometry";
 
 	let scope = this;
 
@@ -42,20 +26,13 @@ export default function TileBufferGeometry(width, height, depth)
 	let numberOfMaterials = 0;
 	let groupStart = 0;
 
+	this.topVerts = [];
+
 	function buildPlane(u, v, w, udir, vdir, width, height, depth)
 	{
-		const gridX = 1;
-		const gridY = 1;
-
-		const segmentWidth = width / gridX;
-		const segmentHeight = height / gridY;
-
 		const widthHalf = width / 2;
 		const heightHalf = height / 2;
 		const depthHalf = depth / 2;
-
-		const gridX1 = gridX + 1;
-		const gridY1 = gridY + 1;
 
 		let vertexCounter = 0;
 		let groupCount = 0;
@@ -63,15 +40,13 @@ export default function TileBufferGeometry(width, height, depth)
 		const vector = new THREE.Vector3();
 
 		// generate vertices, normals and uvs
-		for (let iy = 0; iy < gridY1; iy++)
+		for (let iy = 0; iy < 2; iy++)
 		{
+			let y = iy * height - heightHalf;
 
-			let y = iy * segmentHeight - heightHalf;
-
-			for (let ix = 0; ix < gridX1; ix++)
+			for (let ix = 0; ix < 2; ix++)
 			{
-
-				let x = ix * segmentWidth - widthHalf;
+				let x = ix * width - widthHalf;
 
 				// set values to correct vector component
 				vector[u] = x * udir;
@@ -81,9 +56,14 @@ export default function TileBufferGeometry(width, height, depth)
 				// now apply vector to vertex buffer
 				vertices.push(vector.x, vector.y, vector.z);
 
+				if (vector.y === TILE_HEIGHT / 2)
+				{
+					scope.topVerts.push(numberOfVertices + vertexCounter);
+				}
+
 				// uvs
-				uvs.push(ix / gridX);
-				uvs.push(1 - ( iy / gridY ));
+				uvs.push(ix);
+				uvs.push(1 - iy);
 
 				// counters
 				vertexCounter += 1;
@@ -95,23 +75,17 @@ export default function TileBufferGeometry(width, height, depth)
 		// 1. you need three indices to draw a single face
 		// 2. a single segment consists of two faces
 		// 3. so we need to generate six (2*3) indices per segment
-		for (let iy = 0; iy < gridY; iy++)
-		{
-			for (let ix = 0; ix < gridX; ix++)
-			{
-				let a = numberOfVertices + ix + gridX1 * iy;
-				let b = numberOfVertices + ix + gridX1 * ( iy + 1 );
-				let c = numberOfVertices + ( ix + 1 ) + gridX1 * ( iy + 1 );
-				let d = numberOfVertices + ( ix + 1 ) + gridX1 * iy;
+		const a = numberOfVertices;
+		const b = numberOfVertices + 2;
+		const c = numberOfVertices + 3;
+		const d = numberOfVertices + 1;
 
-				// faces
-				indices.push(a, b, d);
-				indices.push(b, c, d);
+		// faces
+		indices.push(a, b, d);
+		indices.push(b, c, d);
 
-				// increase counter
-				groupCount += 6;
-			}
-		}
+		// increase counter
+		groupCount += 6;
 
 		// add a group to the geometry. this will ensure multi material support
 		scope.addGroup(groupStart, groupCount, numberOfMaterials++);
@@ -124,12 +98,23 @@ export default function TileBufferGeometry(width, height, depth)
 	}
 
 	// build each side of the box geometry
-	buildPlane("z", "y", "x", -1, -1, depth, height, width); // px
-	buildPlane("z", "y", "x", 1, -1, depth, height, -width); // nx
-	buildPlane("x", "z", "y", 1, 1, width, depth, height); // py
-	buildPlane("x", "z", "y", 1, -1, width, depth, -height); // ny
-	buildPlane("x", "y", "z", 1, -1, width, height, depth); // pz
-	buildPlane("x", "y", "z", -1, -1, width, height, -depth); // nz
+	// Back Plane (positive x)
+	buildPlane("z", "y", "x", -1, -1, TILE_DEPTH, TILE_HEIGHT, TILE_WIDTH);
+
+	// Front Plane (negative x)
+	buildPlane("z", "y", "x", 1, -1, TILE_DEPTH, TILE_HEIGHT, -TILE_WIDTH);
+
+	// Top Plane (positive y)
+	buildPlane("x", "z", "y", 1, 1, TILE_WIDTH, TILE_DEPTH, TILE_HEIGHT);
+
+	// Bottom Plane (negative y)
+	//buildPlane("x", "z", "y", 1, -1, TILE_WIDTH, TILE_DEPTH, -TILE_HEIGHT);
+
+	// Left Plane (positive z)
+	buildPlane("x", "y", "z", 1, -1, TILE_WIDTH, TILE_HEIGHT, TILE_DEPTH);
+
+	// Right Plane (negative z)
+	buildPlane("x", "y", "z", -1, -1, TILE_WIDTH, TILE_HEIGHT, -TILE_DEPTH);
 
 	// build geometry
 	this.setIndex(indices);

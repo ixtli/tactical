@@ -1,7 +1,8 @@
 import * as THREE from "../../../bower_components/three.js/build/three.module";
 
 import Chunk from "./chunk"; // jshint ignore:line
-import {TILE_HEIGHT, TILE_WIDTH} from "./tile";
+import {TILE_HEIGHT, TILE_WIDTH} from "../tile_geometry";
+import TileBufferGeometry from "../tile_geometry";
 
 export const MAX_CHUNK_WIDTH = 64;
 export const MAX_CHUNK_DEPTH = 64;
@@ -9,7 +10,7 @@ export const MAX_CHUNK_HEIGHT = 16;
 
 const MAX_TILES = MAX_CHUNK_WIDTH * MAX_CHUNK_HEIGHT * MAX_CHUNK_DEPTH;
 
-const box = new THREE.BoxBufferGeometry(TILE_WIDTH, TILE_HEIGHT, TILE_WIDTH);
+const box = new TileBufferGeometry();
 const VERT_COUNT = box.attributes.position.array.length;
 const INDEX_COUNT = box.index.array.length;
 const indexArray = new Uint32Array(MAX_TILES * INDEX_COUNT);

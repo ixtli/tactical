@@ -1,22 +1,13 @@
 import * as THREE from "../../../bower_components/three.js/build/three.module";
+import TileBufferGeometry, {TILE_HEIGHT} from "../tile_geometry";
 
-export const TILE_WIDTH = 1;
-export const TILE_HEIGHT = 1;
 const DEFAULT_COLOR = new THREE.Color().setHSL(0.3, 0.75, 0.5);
 
-const box = new THREE.BoxBufferGeometry(TILE_WIDTH, TILE_HEIGHT, TILE_WIDTH);
+const box = new TileBufferGeometry();
 const DEFAULT_VERTS = box.attributes.position;
 
 const ar = box.attributes.position.array;
 const arl = ar.length;
-
-for (let i = 0; i < arl;)
-{
-	let msg = `${ar[i++]},${ar[i++]},${ar[i++]}  `;
-	msg += `${ar[i++]},${ar[i++]},${ar[i++]}  `;
-	msg += `${ar[i++]},${ar[i++]},${ar[i++]}`;
-	console.log(msg);
-}
 
 /**
  *
@@ -89,7 +80,7 @@ Tile.prototype.init = function()
 	this._geometry.addAttribute("color", this._colorAttribute);
 	this._geometry.setIndex(box.index);
 	this.color(DEFAULT_COLOR);
-	this.debugColor();
+	//this.debugColor();
 	this.height(0.75);
 	return this;
 };
@@ -103,8 +94,8 @@ Tile.prototype.debugColor = function()
 {
 	const debugColors = [
 		new THREE.Color("red"), new THREE.Color("green"), new THREE.Color("blue"),
-		new THREE.Color(0x999999), new THREE.Color("white"),
-		new THREE.Color("black")
+		new THREE.Color("black"), new THREE.Color("white"),
+		new THREE.Color(0x999999)
 	];
 	let colorIndex = 0;
 	const arr = this.colorArray;
@@ -165,14 +156,12 @@ Tile.prototype.color = function(incoming)
 
 Tile.prototype.height = function(newHeight)
 {
-	const indicies = box.index.array;
-	const relativeHeight = newHeight - 0.5;
-	const start = 6 * 3;
-	const end = start + 6;
-	for (let i = start - 1; i < end; i++)
+	const idxCount = box.topVerts.length;
+	const computedHeight = newHeight - TILE_HEIGHT / 2;
+	for (let i = 0; i < idxCount; i++)
 	{
-		let idx = indicies[i];
-		this._position.array[idx * 3 + 1] = relativeHeight;
+		let idx = box.topVerts[i] * 3 + 1;
+		this.positionArray[idx] = computedHeight;
 	}
 
 	this._position.needsUpdate = true;
