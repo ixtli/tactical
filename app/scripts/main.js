@@ -145,6 +145,8 @@ export default function TacticalEngine(container)
  */
 TacticalEngine.prototype._enterInitState = function()
 {
+	this.container.classList.add("tac-wrapper");
+
 	this.engine.init();
 	this.inputController.init();
 	subscribe("input.signal", this, this._controlKey);
@@ -196,9 +198,8 @@ TacticalEngine.prototype._enterEditorState = function()
 	this._currentTerrain.init();
 	//this._currentTerrain.randomGround(25);
 	this._currentTerrain.getMesh().regenerate();
-	this._currentHUD = new EditorHUD();
+	this._currentHUD = new EditorHUD(this.container);
 	this._currentHUD.init();
-	this.container.appendChild(this._currentHUD.layer);
 
 	this._selectionManager = new SelectionManager(this.engine);
 	this._selectionManager.init();

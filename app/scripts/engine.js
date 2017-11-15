@@ -419,6 +419,15 @@ Engine.prototype.mapBoundingCubeVisible = function(visible)
 
 /**
  *
+ * @returns {Element}
+ */
+Engine.prototype.getDOMElement = function()
+{
+	return this._renderer.domElement;
+};
+
+/**
+ *
  * @param {Chunk} newMap
  */
 Engine.prototype.useMap = function(newMap)

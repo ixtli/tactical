@@ -116,20 +116,21 @@ InputController.prototype.destroy = function()
 
 InputController.prototype.registerEventHandlers = function()
 {
-	this._container.addEventListener("mousemove", this._mouseMoveFunction);
-	this._container.addEventListener("mousedown", this._mouseDownFunction);
-	this._container.addEventListener("mouseup", this._mouseUpFunction);
-	this._container.addEventListener("click", this._onClickFunction);
+	const elt = this._engine.getDOMElement();
+	elt.tabIndex = 1;
+
+	elt.addEventListener("mousemove", this._mouseMoveFunction);
+	elt.addEventListener("mousedown", this._mouseDownFunction);
+	elt.addEventListener("mouseup", this._mouseUpFunction);
+	elt.addEventListener("click", this._onClickFunction);
 
 	// https://developers.google.com/web/updates/2016/06/passive-event-listeners
 	// noinspection JSCheckFunctionSignatures
-	this._container.addEventListener("wheel", this._wheelFunction, {
-		passive: true
-	});
+	elt.addEventListener("wheel", this._wheelFunction, {passive: true});
 
-	window.addEventListener("keyup", this._keyUpFunction);
-	window.addEventListener("keydown", this._keyDownFunction);
-	window.addEventListener("keypress", this._keyPressFunction);
+	elt.addEventListener("keyup", this._keyUpFunction);
+	elt.addEventListener("keydown", this._keyDownFunction);
+	elt.addEventListener("keypress", this._keyPressFunction);
 };
 
 InputController.prototype.deRegisterEventHandlers = function()
@@ -143,9 +144,9 @@ InputController.prototype.deRegisterEventHandlers = function()
 	this._container.removeEventListener("wheel", this._wheelFunction, {
 		passive: true
 	});
-	window.removeEventListener("keyup", this._keyUpFunction);
-	window.removeEventListener("keydown", this._keyDownFunction);
-	window.removeEventListener("keypress", this._keyPressFunction);
+	this._container.removeEventListener("keyup", this._keyUpFunction);
+	this._container.removeEventListener("keydown", this._keyDownFunction);
+	this._container.removeEventListener("keypress", this._keyPressFunction);
 
 	this.blockContextMenu(false);
 };

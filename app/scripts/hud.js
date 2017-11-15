@@ -3,19 +3,17 @@ import WidgetBase from "./widgets/base_widget"; // jshint ignore:line
 
 /**
  *
+ * @param {Element} container
  * @constructor
  */
-export default function HUD()
+export default function HUD(container)
 {
 	/**
+	 *
 	 * @type {Element}
+	 * @private
 	 */
-	Object.defineProperty(this, "layer", {
-		enumerable: false,
-		configurable: false,
-		writable: false,
-		value: document.createElement("div")
-	});
+	this._container = container;
 
 	/**
 	 *
@@ -37,28 +35,27 @@ HUD.prototype.init = function()
 	for (let s of this._sets)
 	{
 		s.initializeWidgets();
-		this.layer.appendChild(s.layer);
+		this._container.appendChild(s.layer);
 	}
 
 	for (let w of this._widgets)
 	{
 		w.init();
-		this.layer.appendChild(w.getContainer());
+		this._container.appendChild(w.getContainer());
 	}
-
-	this.layer.id = "hud-container";
 };
 
 HUD.prototype.destroy = function()
 {
-	const len = this._sets.length;
-
-	for (let i = 0; i < len; i++)
+	for (let s of this._sets)
 	{
-		this._sets[i].destroy();
+		s.destroy();
 	}
 
-	this.layer.remove();
+	for (let w of this._widgets)
+	{
+		w.destroy();
+	}
 };
 
 /**

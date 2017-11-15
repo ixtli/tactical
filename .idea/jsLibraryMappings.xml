@@ -2,7 +2,6 @@
 <project version="4">
   <component name="JavaScriptLibraryMappings">
     <file url="PROJECT" libraries="{Three.JS}" />
-    <excludedPredefinedLibrary name="tactical/bower_components/three.js/node_modules" />
     <excludedPredefinedLibrary name="tactical/node_modules" />
   </component>
 </project>

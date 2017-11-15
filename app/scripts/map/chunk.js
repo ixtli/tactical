@@ -68,7 +68,7 @@ export default function Chunk(w, h, d)
 	 * @type {Tile[]}
 	 * @private
 	 */
-	this._tileArray = [new Tile().init()];
+	this._tileArray = [new Tile("Grass").init()];
 }
 
 Chunk.prototype.init = function()

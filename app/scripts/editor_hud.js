@@ -8,11 +8,12 @@ import WidgetSet from "./widgets/widget_set";
 
 /**
  *
+ * @param {Element} container
  * @constructor
  */
-export default function EditorHUD()
+export default function EditorHUD(container)
 {
-	HUD.call(this);
+	HUD.call(this, container);
 
 	/**
 	 *
