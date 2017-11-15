@@ -1,9 +1,9 @@
 import * as THREE from "../../bower_components/three.js/build/three.module";
 import generateDebounce from "./debounce";
-import {TILE_HEIGHT} from "./map/tile";
+import {TILE_HEIGHT, TILE_WIDTH} from "./map/tile";
 import TWEEN from "./Tween";
 import {emit, emitb} from "./bus";
-import {TILE_WIDTH} from "./map/tile";
+import Chunk from "./map/chunk"; // jshint ignore:line
 
 /**
  *
@@ -472,6 +472,8 @@ Engine.prototype.useMap = function(newMap)
 
 	this._currentMap = newMap;
 
+	emit("engine.map.change", [newMap]);
+
 	this.resetCamera();
 };
 
@@ -524,15 +526,6 @@ Engine.prototype._constructRenderer = function()
 	this._renderer.setPixelRatio(window.devicePixelRatio);
 	this._renderer.setSize(this._windowWidth, this._windowHeight);
 	this._container.appendChild(this._renderer.domElement);
-};
-
-/**
- *
- * @returns {Element}
- */
-Engine.prototype.getRendererElement = function()
-{
-	return this._renderer.domElement;
 };
 
 /**

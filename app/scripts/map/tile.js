@@ -76,6 +76,7 @@ export default function Tile()
 Tile.prototype.init = function()
 {
 	this._geometry.addAttribute("color", this._colorAttribute);
+	this._geometry.setIndex(box.index);
 	this.color(DEFAULT_COLOR);
 	return this;
 };
@@ -132,4 +133,13 @@ Tile.prototype.deform = function(deformation)
 	this._deform = deformation.clone();
 
 	return this;
+};
+
+/**
+ *
+ * @returns {BoxGeometry}
+ */
+Tile.prototype.getGeometry = function()
+{
+	return this._geometry;
 };
