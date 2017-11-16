@@ -299,3 +299,16 @@ Chunk.prototype.getTileArray = function()
 {
 	return this._tileArray;
 };
+
+/**
+ *
+ * @param {Vector3} vec
+ * @returns {Tile|null}
+ */
+Chunk.prototype.getTileForLocation = function(vec)
+{
+	const idx = vec.z * this._width * this._height + vec.y * this._width + vec.x;
+	const tileIndex = this._data[idx];
+	console.log(vec, idx, tileIndex);
+	return tileIndex ? this._tileArray[tileIndex - 1] : null;
+};
