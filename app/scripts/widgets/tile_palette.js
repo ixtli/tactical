@@ -76,6 +76,13 @@ export default function TilePalette()
 
 	/**
 	 *
+	 * @type {Element}
+	 * @private
+	 */
+	this._checkBoxContainer = document.createElement("div");
+
+	/**
+	 *
 	 * @type {null|Tile}
 	 * @private
 	 */
@@ -87,6 +94,13 @@ export default function TilePalette()
 	 * @private
 	 */
 	this._mesh = null;
+
+	/**
+	 *
+	 * @type {boolean}
+	 * @private
+	 */
+	this._modifyExistingTile = false;
 }
 
 TilePalette.prototype = Object.create(WidgetBase.prototype);
@@ -131,6 +145,19 @@ TilePalette.prototype.init = function()
 	this._deformInput[2].id = "np";
 	this._deformInput[3].id = "nn";
 
+	const cb = document.createElement("input");
+	cb.id = "met";
+	cb.type = "checkbox";
+	cb.checked = this._modifyExistingTile;
+	cb.addEventListener("change", (function (evt) {
+		this._modifyExistingTile = evt.target.checked;
+	}).bind(this));
+	const label = document.createElement("label");
+	label.for = "met";
+	label.innerHTML = "Modify";
+	this._checkBoxContainer.appendChild(cb);
+	this._checkBoxContainer.appendChild(label);
+
 	this._container.appendChild(this._renderer.domElement);
 	this._container.appendChild(this._nameInput);
 	this._container.appendChild(this._colorInput);
@@ -145,6 +172,7 @@ TilePalette.prototype.init = function()
 		this._container.appendChild(di);
 	}
 
+	this._container.appendChild(this._checkBoxContainer);
 	this._container.classList.add("tile-palette");
 
 	this._container.style.display = "none";

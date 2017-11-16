@@ -304,14 +304,26 @@ export default function SelectionManager(graphicsEngine)
 
 SelectionManager.prototype.init = function()
 {
+	// These boxes are the closest we come to the real problem of transparent
+	// geometry intersection. The general idea is that, because they will overlap
+	// dynamically, they should never be the same size, and the selection volume
+	// should always render first.
 	this._highlightBox.scale.add(this._offset);
 	this._primarySelectionBox.scale.add(this._offset);
 	this._secondarySelectionBox.scale.add(this._offset);
+	this._highlightBox.scale.addScalar(-0.05);
+	this._secondarySelectionBox.scale.addScalar(-0.025);
+	this._primarySelectionBox.renderOrder = 0.25;
+	this._secondarySelectionBox.renderOrder = 0.25;
+	this._selectionVolume.renderOrder = 0.75;
 
 	this._primarySelectionBox.visible = false;
 	this._secondarySelectionBox.visible = false;
 
+	// This will never change size.
 	this._highlightBoxGeometry.attributes.position.setDynamic(false);
+
+	// This will often change size
 	this._selectionVolume.geometry.attributes.position.setDynamic(true);
 
 	this._subscribe();
@@ -321,9 +333,6 @@ SelectionManager.prototype.init = function()
 	this._engine.addObjectToScene(this._highlightBox);
 
 	// There's probably a better way to solve this intersection issue
-	this._primarySelectionBox.renderOrder = 0.25;
-	this._secondarySelectionBox.renderOrder = 0.25;
-	this._selectionVolume.renderOrder = 0.75;
 
 	this._updateSelectionVolume();
 

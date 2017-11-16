@@ -63,8 +63,18 @@ body {
 	}
 
 	input.deform-input.invalid {
-		background-color: #af8892;
-		color: #500007;
+		background-color: #ffcbdb;
+		color: #7a0009;
+	}
+
+	input[type='checkbox']
+	{
+		float: left;
+		width: 17px;
+	}
+
+	label {
+		float: left;
 	}
 }
 
