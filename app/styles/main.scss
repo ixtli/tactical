@@ -56,6 +56,16 @@ body {
 		width: 100%;
 		box-sizing: border-box;
 	}
+
+	input.deform-input {
+		width: 25%;
+		text-align: center;
+	}
+
+	input.deform-input.invalid {
+		background-color: #af8892;
+		color: #500007;
+	}
 }
 
 .widget-container.status-line {

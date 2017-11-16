@@ -26,7 +26,7 @@ export default function TileBufferGeometry()
 	let numberOfMaterials = 0;
 	let groupStart = 0;
 
-	this.topVerts = [];
+	this.topVerts = {pp: [], pn: [], np: [], nn: []};
 
 	function buildPlane(u, v, w, udir, vdir, width, height, depth)
 	{
@@ -58,7 +58,22 @@ export default function TileBufferGeometry()
 
 				if (vector.y === TILE_HEIGHT / 2)
 				{
-					scope.topVerts.push(numberOfVertices + vertexCounter);
+					if (vector.x < 0)
+					{
+						if (vector.z < 0)
+						{
+							scope.topVerts.nn.push(numberOfVertices + vertexCounter);
+						} else {
+							scope.topVerts.np.push(numberOfVertices + vertexCounter);
+						}
+					} else {
+						if (vector.z < 0)
+						{
+							scope.topVerts.pn.push(numberOfVertices + vertexCounter);
+						} else {
+							scope.topVerts.pp.push(numberOfVertices + vertexCounter);
+						}
+					}
 				}
 
 				// uvs

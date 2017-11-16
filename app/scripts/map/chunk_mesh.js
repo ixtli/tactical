@@ -206,7 +206,7 @@ ChunkMesh.prototype.regenerate = function()
 				pickColor.setHex(idx + 1);
 
 				let start = generated * VERT_COUNT;
-				let positions = tile.positionArray;
+				let positions = tile.getPositionArray();
 				for (let i = 0; i < VERT_COUNT; i += 3)
 				{
 					positionArray[start + i] = positions[i] + px;

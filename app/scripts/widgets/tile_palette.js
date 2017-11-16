@@ -11,9 +11,7 @@ const VIEW_SIZE = 96;
  * @type {MeshPhongMaterial}
  */
 const TILE_MATERIAL = new THREE.MeshPhongMaterial({
-	color: 0xffffff,
-	flatShading: true,
-	vertexColors: THREE.VertexColors
+	color: 0xffffff, flatShading: true, vertexColors: THREE.VertexColors
 });
 
 /**
@@ -68,6 +66,16 @@ export default function TilePalette()
 
 	/**
 	 *
+	 * @type {Array.<Element>}
+	 * @private
+	 */
+	this._deformInput = [
+		document.createElement("input"), document.createElement("input"),
+		document.createElement("input"), document.createElement("input")
+	];
+
+	/**
+	 *
 	 * @type {null|Tile}
 	 * @private
 	 */
@@ -118,13 +126,49 @@ TilePalette.prototype.init = function()
 		this._render();
 	}).bind(this));
 
+	this._deformInput[0].id = "pp";
+	this._deformInput[1].id = "pn";
+	this._deformInput[2].id = "np";
+	this._deformInput[3].id = "nn";
+
 	this._container.appendChild(this._renderer.domElement);
 	this._container.appendChild(this._nameInput);
 	this._container.appendChild(this._colorInput);
 
+	const fxn = this._deformInputChange.bind(this);
+
+	for (let di of this._deformInput)
+	{
+		di.classList.add("deform-input");
+		di.placeholder = di.id;
+		di.addEventListener("input", fxn);
+		this._container.appendChild(di);
+	}
+
 	this._container.classList.add("tile-palette");
 
 	subscribe("engine.map.change", this, this._mapChange);
+};
+
+/**
+ *
+ * @param {InputEvent} evt
+ */
+TilePalette.prototype._deformInputChange = function(evt)
+{
+	const me = evt.target;
+	const val = parseFloat(me.value);
+
+	if (val >= 0 && val <= 1)
+	{
+		me.classList.remove("invalid");
+	} else {
+		me.classList.add("invalid");
+		return;
+	}
+
+	this._currentTile.deformSide(me.id, val);
+	this._render();
 };
 
 /**
@@ -145,6 +189,11 @@ TilePalette.prototype._currentTileChange = function()
 	this._colorInput.disabled = false;
 	this._nameInput.value = ct.name();
 	this._colorInput.value = ct.colorHex().toString(16);
+
+	for (let di of this._deformInput)
+	{
+		di.value = ct.getSideDeform(di.id);
+	}
 };
 
 TilePalette.prototype.destroy = function()
@@ -163,27 +212,12 @@ TilePalette.prototype.destroy = function()
 TilePalette.prototype._mapChange = function(newMap)
 {
 	this._currentMap = newMap;
-	this._setCurrentTile(this._currentMap._tileArray[0]);
-	this._render();
-};
-
-/**
- *
- * @param {Tile} newTile
- * @private
- */
-TilePalette.prototype._setCurrentTile = function(newTile)
-{
-	if (this._mesh)
-	{
-		this._scene.remove(this._mesh);
-	}
-
-	this._currentTile = newTile;
+	this._currentTile = this._currentMap._tileArray[0];
 	this._currentTileChange();
-	this._mesh = new THREE.Mesh(newTile.getGeometry(), TILE_MATERIAL);
+	this._mesh = new THREE.Mesh(this._currentTile.getGeometry(), TILE_MATERIAL);
 	this._mesh.position.set(0, 0, 0);
 	this._scene.add(this._mesh);
+	this._render();
 };
 
 TilePalette.prototype._render = function()

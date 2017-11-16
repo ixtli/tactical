@@ -7,7 +7,6 @@ const box = new TileBufferGeometry();
 const DEFAULT_VERTS = box.attributes.position;
 
 const ar = box.attributes.position.array;
-const arl = ar.length;
 
 /**
  *
@@ -41,13 +40,7 @@ export default function Tile(name)
 	 *
 	 * @type {Float32Array}
 	 */
-	this.positionArray = this._position.array;
-
-	/**
-	 *
-	 * @type {Float32Array}
-	 */
-	this.colorArray = new Float32Array(this.positionArray.length);
+	this.colorArray = new Float32Array(this._position.array.length);
 
 	/**
 	 *
@@ -65,10 +58,17 @@ export default function Tile(name)
 
 	/**
 	 *
-	 * @type {null|Vector4}
+	 * @type {{pp: number, pn: number, np: number, nn: number}}
 	 * @private
 	 */
-	this._deform = null;
+	this._deform = {pp: 1, pn: 1, np: 1, nn: 1};
+
+	/**
+	 *
+	 * @type {string}
+	 * @private
+	 */
+	this._hashKey = "";
 }
 
 /**
@@ -81,7 +81,6 @@ Tile.prototype.init = function()
 	this._geometry.setIndex(box.index);
 	this.color(DEFAULT_COLOR);
 	//this.debugColor();
-	this.height(0.75);
 	return this;
 };
 
@@ -154,36 +153,46 @@ Tile.prototype.color = function(incoming)
 	return this;
 };
 
-Tile.prototype.height = function(newHeight)
+/**
+ *
+ * @param {number} newHeight
+ * @returns {Tile}
+ */
+Tile.prototype.setHeight = function(newHeight)
 {
-	const idxCount = box.topVerts.length;
-	const computedHeight = newHeight - TILE_HEIGHT / 2;
-	for (let i = 0; i < idxCount; i++)
-	{
-		let idx = box.topVerts[i] * 3 + 1;
-		this.positionArray[idx] = computedHeight;
-	}
+	this.deformSide("nn", newHeight);
+	this.deformSide("np", newHeight);
+	this.deformSide("pn", newHeight);
+	this.deformSide("pp", newHeight);
 
-	this._position.needsUpdate = true;
+	console.log(box.topVerts);
 
 	return this;
 };
 
 /**
  *
- * @param {Vector4} deformation
- * @returns {Vector4|null|Tile}
+ * @param {string} side
+ * @param {number} amount
+ * @returns {Tile}
  */
-Tile.prototype.deform = function(deformation)
+Tile.prototype.deformSide = function(side, amount)
 {
-	if (!deformation)
+	console.assert(amount >= 0 && amount <= 1, "non-normal amount " + amount);
+	const idxArray = box.topVerts[side];
+	const idxCount = idxArray.length;
+	const computedHeight = amount - TILE_HEIGHT / 2;
+	const arr = this._position.array;
+	for (let i = 0; i < idxCount; i++)
 	{
-		return this._deform;
+		let idx = idxArray[i] * 3 + 1;
+		arr[idx] = computedHeight;
 	}
 
-	deformation = new THREE.Vector4();
+	this._deform[side] = amount;
+	this._regenerateHashKey();
 
-	this._deform = deformation.clone();
+	this._position.needsUpdate = true;
 
 	return this;
 };
@@ -211,6 +220,8 @@ Tile.prototype.colorHex = function(newHex)
 
 	this.color(new THREE.Color(newHex));
 
+	this._regenerateHashKey();
+
 	return this;
 };
 
@@ -229,4 +240,39 @@ Tile.prototype.name = function(newValue)
 	this._name = newValue;
 
 	return this;
+};
+
+/**
+ *
+ * @returns {Float32Array}
+ */
+Tile.prototype.getPositionArray = function()
+{
+	return this._position.array;
+};
+
+/**
+ *
+ * @returns {string}
+ */
+Tile.prototype.hashKey = function()
+{
+	return this._hashKey;
+};
+
+Tile.prototype._regenerateHashKey = function()
+{
+	const d = this._deform;
+	const c = this._color;
+	this._hashKey = `${c.getHex()}${d.nn}${d.np}${d.pn}${d.pp}`;
+};
+
+/**
+ *
+ * @param side
+ * @returns {number}
+ */
+Tile.prototype.getSideDeform = function(side)
+{
+	return this._deform[side];
 };
