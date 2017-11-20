@@ -218,7 +218,7 @@ ChunkMesh.prototype.regenerate = function()
 					pickArray[start + i + 2] = pickColor.b;
 				}
 
-				colorArray.set(tile.colorArray, start);
+				colorArray.set(tile.getColorArray(), start);
 
 				generated++;
 			}

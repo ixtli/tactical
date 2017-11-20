@@ -1,6 +1,6 @@
 import * as THREE from "../../../bower_components/three.js/build/three.module";
 import WidgetBase from "./base_widget";
-import Tile from "../map/tile"; // jshint ignore:line
+import Tile, {TileAttributes} from "../map/tile"; // jshint ignore:line
 import Chunk from "../map/chunk"; // jshint ignore:line
 import {subscribe, unsubscribe} from "../bus";
 
@@ -100,7 +100,21 @@ export default function TilePalette()
 	 * @type {boolean}
 	 * @private
 	 */
-	this._modifyExistingTile = false;
+	this._modifyExistingTile = true;
+
+	/**
+	 *
+	 * @type {TileAttributes}
+	 * @private
+	 */
+	this._attributes = new TileAttributes();
+
+	/**
+	 *
+	 * @type {Vector3}
+	 * @private
+	 */
+	this._currentLocation = new THREE.Vector3();
 }
 
 TilePalette.prototype = Object.create(WidgetBase.prototype);
@@ -109,24 +123,31 @@ TilePalette.prototype.init = function()
 {
 	WidgetBase.prototype.init.call(this);
 
-	window.devicePixelRatio = window.devicePixelRatio || 1;
-	this._renderer.setPixelRatio(window.devicePixelRatio);
-	this._renderer.setSize(VIEW_SIZE, VIEW_SIZE);
+	this._initializeTilePreview();
+	this._initializeDOM();
 
-	this._scene.background = new THREE.Color(0x8BFFF7);
-	this._scene.add(new THREE.AmbientLight(0x555555));
-	const light = new THREE.SpotLight(0xffffff, 1.5);
-	light.position.set(100, 500, 1900);
-	this._scene.add(light);
+	subscribe("engine.map.change", this, this._mapChange);
+	subscribe("select.primary.tile", this, this._primarySelectionChange);
+	subscribe("select.toggle", this, this._primarySelectionChange);
+	subscribe("select.add", this, this._primarySelectionChange);
+	subscribe("select.remove", this, this._primarySelectionChange);
+};
 
-	this._camera.left = -1;
-	this._camera.right = 1;
-	this._camera.top = 1;
-	this._camera.bottom = -1;
-	this._camera.updateProjectionMatrix();
-	this._camera.position.set(-2, 1, -2);
-	this._camera.lookAt(new THREE.Vector3());
+TilePalette.prototype.destroy = function()
+{
+	unsubscribe("engine.map.change", this, this._mapChange);
+	unsubscribe("select.primary.tile", this, this._primarySelectionChange);
+	unsubscribe("select.toggle", this, this._primarySelectionChange);
+	unsubscribe("select.add", this, this._primarySelectionChange);
+	unsubscribe("select.remove", this, this._primarySelectionChange);
 
+	this._container.classList.remove("tile-palette");
+
+	WidgetBase.prototype.destroy.call(this);
+};
+
+TilePalette.prototype._initializeDOM = function()
+{
 	this._nameInput.placeholder = "Tile Name";
 	this._nameInput.addEventListener("keypress", (function(evt)
 	{
@@ -136,8 +157,8 @@ TilePalette.prototype.init = function()
 	this._colorInput.placeholder = "Color Hex";
 	this._colorInput.addEventListener("input", (function(evt)
 	{
-		this._currentTile.colorHex(parseInt(evt.target.value, 16));
-		this._render();
+		this._attributes.colorHex(parseInt(evt.target.value, 16));
+		this._attributesHaveChanged();
 	}).bind(this));
 
 	this._deformInput[0].id = "pp";
@@ -149,7 +170,8 @@ TilePalette.prototype.init = function()
 	cb.id = "met";
 	cb.type = "checkbox";
 	cb.checked = this._modifyExistingTile;
-	cb.addEventListener("change", (function (evt) {
+	cb.addEventListener("change", (function(evt)
+	{
 		this._modifyExistingTile = evt.target.checked;
 	}).bind(this));
 	const label = document.createElement("label");
@@ -176,25 +198,29 @@ TilePalette.prototype.init = function()
 	this._container.classList.add("tile-palette");
 
 	this._container.style.display = "none";
-
-	subscribe("engine.map.change", this, this._mapChange);
-	subscribe("select.primary.tile", this, this._primarySelectionChange);
-	subscribe("select.toggle", this, this._primarySelectionChange);
-	subscribe("select.add", this, this._primarySelectionChange);
-	subscribe("select.remove", this, this._primarySelectionChange);
 };
 
-TilePalette.prototype.destroy = function()
+TilePalette.prototype._initializeTilePreview = function()
 {
-	unsubscribe("engine.map.change", this, this._mapChange);
-	unsubscribe("select.primary.tile", this, this._primarySelectionChange);
-	unsubscribe("select.toggle", this, this._primarySelectionChange);
-	unsubscribe("select.add", this, this._primarySelectionChange);
-	unsubscribe("select.remove", this, this._primarySelectionChange);
+	window.devicePixelRatio = window.devicePixelRatio || 1;
 
-	this._container.classList.remove("tile-palette");
+	this._renderer.setPixelRatio(window.devicePixelRatio);
+	this._renderer.setSize(VIEW_SIZE, VIEW_SIZE);
 
-	WidgetBase.prototype.destroy.call(this);
+	this._scene.background = new THREE.Color(0x8BFFF7);
+
+	this._scene.add(new THREE.AmbientLight(0x555555));
+	const light = new THREE.SpotLight(0xffffff, 1.5);
+	light.position.set(100, 500, 1900);
+	this._scene.add(light);
+
+	this._camera.left = -1;
+	this._camera.right = 1;
+	this._camera.top = 1;
+	this._camera.bottom = -1;
+	this._camera.updateProjectionMatrix();
+	this._camera.position.set(-2, 1, -2);
+	this._camera.lookAt(new THREE.Vector3());
 };
 
 /**
@@ -205,6 +231,7 @@ TilePalette.prototype.destroy = function()
 TilePalette.prototype._primarySelectionChange = function(p)
 {
 	this.currentTile(p ? this._currentMap.getTileForLocation(p) : null);
+	this._currentLocation.copy(p);
 };
 
 /**
@@ -219,13 +246,44 @@ TilePalette.prototype._deformInputChange = function(evt)
 	if (val >= 0 && val <= 1)
 	{
 		me.classList.remove("invalid");
-	} else {
+	}
+	else
+	{
 		me.classList.add("invalid");
 		return;
 	}
 
-	this._currentTile.deformSide(me.id, val);
-	this._render();
+	this._attributes.deformSide(me.id, val);
+
+	this._attributesHaveChanged();
+};
+
+TilePalette.prototype._attributesHaveChanged = function()
+{
+	if (this._currentTile.attributeEquals(this._attributes))
+	{
+		return;
+	}
+
+	let nt = null;
+	if (this._modifyExistingTile)
+	{
+		let tile = this._currentMap.tileForAttributes(this._attributes);
+
+		if (tile === null)
+		{
+			tile = new Tile(this._currentTile.name());
+			tile.init(this._attributes);
+		}
+
+		nt = this._currentMap.setTileForLocation(this._currentLocation, tile);
+	}
+	else
+	{
+		nt = this._currentMap.updateTile(this._currentTile, this._attributes);
+	}
+
+	this.currentTile(nt);
 };
 
 /**
@@ -244,6 +302,7 @@ TilePalette.prototype.currentTile = function(newTile)
 
 	if (newTile === ct)
 	{
+		this._render();
 		return this;
 	}
 
@@ -256,11 +315,16 @@ TilePalette.prototype.currentTile = function(newTile)
 
 	this._container.style.display = null;
 	this._nameInput.value = newTile.name();
-	this._colorInput.value = newTile.colorHex().toString(16);
+
+	// Copy attributes locally
+	this._attributes.set(newTile.getNewCopyOfAttributes());
+
+	// Update attribute fields with new values
+	this._colorInput.value = this._attributes.colorHex().toString(16);
 
 	for (let di of this._deformInput)
 	{
-		di.value = newTile.getSideDeform(di.id);
+		di.value = this._attributes.getDeformationForSide(di.id);
 	}
 
 	if (this._mesh)

@@ -231,13 +231,6 @@ export default function SelectionManager(graphicsEngine)
 
 	/**
 	 *
-	 * @type {number}
-	 * @private
-	 */
-	this._zoomStepSize = 1;
-
-	/**
-	 *
 	 * @type {Vector3}
 	 * @private
 	 */

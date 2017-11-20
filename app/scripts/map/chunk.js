@@ -3,7 +3,8 @@ import ChunkMesh, {
 	MAX_CHUNK_DEPTH, MAX_CHUNK_HEIGHT, MAX_CHUNK_WIDTH
 } from "./chunk_mesh";
 import {subscribe, unsubscribe} from "../bus";
-import Tile from "./tile";
+import Tile from "./tile"; // jshint ignore:line
+import TileDictionary from "./tile_dictionary";
 
 /**
  *
@@ -65,14 +66,15 @@ export default function Chunk(w, h, d)
 
 	/**
 	 *
-	 * @type {Tile[]}
+	 * @type {TileDictionary}
 	 * @private
 	 */
-	this._tileArray = [new Tile("Grass").init()];
+	this._tileDictionary = new TileDictionary();
 }
 
 Chunk.prototype.init = function()
 {
+	this._tileDictionary.init();
 	this._mesh.init();
 	subscribe("select.toggle", this, this.toggleBetween);
 	subscribe("select.add", this, this.addBetween);
@@ -86,6 +88,7 @@ Chunk.prototype.destroy = function()
 	unsubscribe("select.remove", this, this.removeBetween);
 	this._data = null;
 	this._mesh.destroy();
+	this._tileDictionary.destroy();
 };
 
 /**
@@ -297,7 +300,7 @@ Chunk.prototype.getTileCount = function()
  */
 Chunk.prototype.getTileArray = function()
 {
-	return this._tileArray;
+	return this._tileDictionary.getArray();
 };
 
 /**
@@ -309,6 +312,102 @@ Chunk.prototype.getTileForLocation = function(vec)
 {
 	const idx = vec.z * this._width * this._height + vec.y * this._width + vec.x;
 	const tileIndex = this._data[idx];
-	console.log(vec, idx, tileIndex);
-	return tileIndex ? this._tileArray[tileIndex - 1] : null;
+	return tileIndex ? this._tileDictionary.getArray()[tileIndex - 1] : null;
+};
+
+/**
+ *
+ * @param {Vector3} vec
+ * @param {Tile} tile
+ * @returns {Tile}
+ */
+Chunk.prototype.setTileForLocation = function(vec, tile)
+{
+	const tileIndex = this._tileDictionary.add(tile);
+	const idx = vec.z * this._width * this._height + vec.y * this._width + vec.x;
+
+	if (this._data[idx] !== tileIndex)
+	{
+		this._data[idx] = tileIndex;
+		this._mesh.regenerate();
+		console.log(vec, this._tileDictionary.getArray().length);
+	}
+
+	return this._tileDictionary.getArray()[tileIndex];
+};
+
+/**
+ *
+ * @param {Tile} tile
+ * @param {TileAttributes} attributes
+ * @returns {Tile}
+ */
+Chunk.prototype.updateTile = function(tile, attributes)
+{
+	console.assert(this._tileDictionary.has(tile), `Tile ${tile} not in map`);
+
+	// Easy out: no changes
+	if (tile.attributeEquals(attributes))
+	{
+		return tile;
+	}
+
+	// Has something actually changed requiring a regeneration?
+	let delta = false;
+
+	// Do the new attributes exists in the tile dict?
+	const idx = this._tileDictionary.indexForAttributes(attributes);
+
+	if (idx !== -1)
+	{
+		// If so, delete the current one and replace all instances of its idx in
+		// data array with the new one
+		const oldIdx = this._tileDictionary.remove(tile);
+		this._updateAllTileIndices(oldIdx, idx);
+	}
+	else
+	{
+		// If not, simply update this tile
+		delta = this._tileDictionary.update(tile, attributes);
+	}
+
+	if (delta)
+	{
+		this._mesh.regenerate();
+	}
+
+	return tile;
+};
+
+/**
+ *
+ * @param {number} oldIndex
+ * @param {number} newIndex
+ * @returns {number}
+ * @private
+ */
+Chunk.prototype._updateAllTileIndices = function(oldIndex, newIndex)
+{
+	const data = this._data;
+	const len = data.length;
+	let delta = 0;
+	for (let i = 0; i < len; i++)
+	{
+		if (data[i] === oldIndex)
+		{
+			data[i] = newIndex;
+			delta++;
+		}
+	}
+	return delta;
+};
+
+/**
+ *
+ * @param {TileAttributes} attributes
+ * @returns {Tile|null}
+ */
+Chunk.prototype.tileForAttributes = function(attributes)
+{
+	return this._tileDictionary.tileForAttributes(attributes);
 };
