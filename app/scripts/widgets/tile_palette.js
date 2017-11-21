@@ -149,7 +149,7 @@ TilePalette.prototype.destroy = function()
 TilePalette.prototype._initializeDOM = function()
 {
 	this._nameInput.placeholder = "Tile Name";
-	this._nameInput.addEventListener("keypress", (function(evt)
+	this._nameInput.addEventListener("input", (function(evt)
 	{
 		this._currentTile.name(evt.target.value);
 	}).bind(this));

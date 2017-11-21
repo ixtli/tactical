@@ -326,11 +326,10 @@ Chunk.prototype.setTileForLocation = function(vec, tile)
 	const tileIndex = this._tileDictionary.add(tile);
 	const idx = vec.z * this._width * this._height + vec.y * this._width + vec.x;
 
-	if (this._data[idx] !== tileIndex)
+	if (this._data[idx] !== tileIndex + 1)
 	{
-		this._data[idx] = tileIndex;
+		this._data[idx] = tileIndex + 1;
 		this._mesh.regenerate();
-		console.log(vec, this._tileDictionary.getArray().length);
 	}
 
 	return this._tileDictionary.getArray()[tileIndex];
@@ -393,9 +392,9 @@ Chunk.prototype._updateAllTileIndices = function(oldIndex, newIndex)
 	let delta = 0;
 	for (let i = 0; i < len; i++)
 	{
-		if (data[i] === oldIndex)
+		if (data[i] === oldIndex + 1)
 		{
-			data[i] = newIndex;
+			data[i] = newIndex + 1;
 			delta++;
 		}
 	}

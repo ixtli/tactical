@@ -224,7 +224,7 @@ TileAttributes.prototype.colorHex = function(newHex)
 		return this._color.getHex();
 	}
 
-	this.color.setHex(newHex);
+	this._color.setHex(newHex);
 	this._regenerateHashKey();
 
 	return this;
