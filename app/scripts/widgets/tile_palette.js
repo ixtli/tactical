@@ -59,10 +59,14 @@ export default function TilePalette()
 
 	/**
 	 *
-	 * @type {Element}
+	 * @type {Array.<Element>}
 	 * @private
 	 */
-	this._colorInput = document.createElement("input");
+	this._colorInput = [
+		document.createElement("input"),
+		document.createElement("input"),
+		document.createElement("input")
+	];
 
 	/**
 	 *
@@ -154,12 +158,9 @@ TilePalette.prototype._initializeDOM = function()
 		this._currentTile.name(evt.target.value);
 	}).bind(this));
 
-	this._colorInput.placeholder = "Color Hex";
-	this._colorInput.addEventListener("input", (function(evt)
-	{
-		this._attributes.colorHex(parseInt(evt.target.value, 16));
-		this._attributesHaveChanged();
-	}).bind(this));
+	this._colorInput[0].id = "r";
+	this._colorInput[1].id = "g";
+	this._colorInput[2].id = "b";
 
 	this._deformInput[0].id = "pp";
 	this._deformInput[1].id = "pn";
@@ -182,9 +183,19 @@ TilePalette.prototype._initializeDOM = function()
 
 	this._container.appendChild(this._renderer.domElement);
 	this._container.appendChild(this._nameInput);
-	this._container.appendChild(this._colorInput);
 
-	const fxn = this._deformInputChange.bind(this);
+	let fxn = this._colorInputChange.bind(this);
+
+	for (let ci of this._colorInput)
+	{
+		ci.classList.add("color-input");
+		ci.placeholder = ci.id;
+		this._colorInput.placeholder = "Color Hex";
+		ci.addEventListener("input", fxn);
+		this._container.appendChild(ci);
+	}
+
+	fxn = this._deformInputChange.bind(this);
 
 	for (let di of this._deformInput)
 	{
@@ -237,6 +248,7 @@ TilePalette.prototype._primarySelectionChange = function(p)
 /**
  *
  * @param {InputEvent} evt
+ * @private
  */
 TilePalette.prototype._deformInputChange = function(evt)
 {
@@ -257,6 +269,17 @@ TilePalette.prototype._deformInputChange = function(evt)
 
 	this._attributesHaveChanged();
 };
+
+/**
+ *
+ * @param {InputEvent} evt
+ * @private
+ */
+TilePalette.prototype._colorInputChange = function(evt)
+{
+
+};
+
 
 TilePalette.prototype._attributesHaveChanged = function()
 {
@@ -320,7 +343,10 @@ TilePalette.prototype.currentTile = function(newTile)
 	this._attributes.set(newTile.getNewCopyOfAttributes());
 
 	// Update attribute fields with new values
-	this._colorInput.value = this._attributes.colorHex().toString(16);
+	const color = this._attributes.color();
+	this._colorInput[0].value = color.r;
+	this._colorInput[1].value = color.g;
+	this._colorInput[2].value = color.b;
 
 	for (let di of this._deformInput)
 	{

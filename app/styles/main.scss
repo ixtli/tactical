@@ -46,7 +46,7 @@ body {
 .widget-container.tile-palette {
 	top: 10px;
 	left: 10px;
-	width: 96px;
+	width: 190px;
 	height: 256px;
 	background-color: white;
 	border-radius: 5px;
@@ -60,6 +60,23 @@ body {
 	input.deform-input {
 		width: 25%;
 		text-align: center;
+		padding: 0;
+	}
+
+	input.color-input {
+		width: 33.3%;
+		text-align: center;
+		padding: 0;
+	}
+
+	input.color-input#r {
+		background: #ffcacc;
+	}
+	input.color-input#g {
+		background: #d3ffd8;
+	}
+	input.color-input#b {
+		background: #cccfff;
 	}
 
 	input.deform-input.invalid {
@@ -67,8 +84,7 @@ body {
 		color: #7a0009;
 	}
 
-	input[type='checkbox']
-	{
+	input[type='checkbox'] {
 		float: left;
 		width: 17px;
 	}
