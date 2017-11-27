@@ -6,6 +6,7 @@ const browserSync = require("browser-sync")
 const del = require("del");
 const wiredep = require("wiredep").stream;
 const runSequence = require("run-sequence");
+const nop = require("gulp-nop");
 
 const $ = gulpLoadPlugins();
 const reload = browserSync.reload;
@@ -41,6 +42,12 @@ gulp.task("scripts", () =>
 		.pipe(reload({stream: true}));
 });
 
+gulp.task("dump_scripts", ["scripts"], () =>
+{
+	return gulp.src(".tmp/scripts/**/*.js")
+		.pipe(gulp.dest("dist/scripts"));
+});
+
 function lint(files)
 {
 	return gulp.src(files)
@@ -65,12 +72,10 @@ gulp.task("html", ["styles", "scripts"], () =>
 {
 	return gulp.src("app/*.html")
 		.pipe($.useref({searchPath: [".tmp", "app", "."]}))
-		.pipe($.if(/\.js$/, $.uglify({compress: {drop_console: true}})))
 		.pipe($.if(/\.css$/, $.cssnano({safe: true, autoprefixer: false})))
 		.pipe($.if(/\.html$/, $.htmlmin({
 			collapseWhitespace: true,
 			minifyCSS: true,
-			minifyJS: {compress: {drop_console: true}},
 			processConditionalComments: true,
 			removeComments: true,
 			removeEmptyAttributes: true,
@@ -189,7 +194,7 @@ gulp.task("wiredep", () =>
 		.pipe(gulp.dest("app"));
 });
 
-gulp.task("build", ["lint", "html", "images", "fonts", "extras"], () =>
+gulp.task("build", ["lint", "html", "images", "fonts", "extras", "dump_scripts"], () =>
 {
 	return gulp.src("dist/**/*")
 		.pipe($.size({title: "build", gzip: true}));
