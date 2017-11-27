@@ -6,3 +6,7 @@ npm install -g gulp
 npm install
 gulp serve
 ```
+
+
+## Troubleshooting
+`gulp serve` throwing node-sass errors? try `npm rebuild node-sass`
