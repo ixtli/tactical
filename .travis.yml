@@ -1,21 +1,21 @@
 language: node_js
 node_js:
-	- "9"
+  - "9"
 
 before_script:
-	- "npm install -g gulp-cli"
+  - "npm install -g gulp-cli"
 
 cache:
-	directories:
-		- "node_modules"
-		- "bower_components"
+  directories:
+    - "node_modules"
+    - "bower_components"
 
 script: gulp
 
 deploy:
-	provider: pages
-	skip_cleanup: true
-	local_dir: /dist
-	github_token: $GITHUB_TOKEN
-	on:
-		branch: master
+  provider: pages
+  skip_cleanup: true
+  local_dir: /dist
+  github_token: $GITHUB_TOKEN
+  on:
+    branch: master
