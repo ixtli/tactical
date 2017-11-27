@@ -189,7 +189,6 @@ TilePalette.prototype._initializeDOM = function()
 	{
 		ci.classList.add("color-input");
 		ci.placeholder = ci.id;
-		this._colorInput.placeholder = "Color Hex";
 		ci.addEventListener("input", fxn);
 		this._container.appendChild(ci);
 	}
@@ -277,7 +276,7 @@ TilePalette.prototype._deformInputChange = function(evt)
 TilePalette.prototype._colorInputChange = function(evt)
 {
 	const me = evt.target;
-	const val = me.value;
+	const val = parseFloat(me.value);
 
 	if (val >= 0 && val <= 1)
 	{
@@ -285,13 +284,11 @@ TilePalette.prototype._colorInputChange = function(evt)
 	}
 	else
 	{
-		me.classList.add("invalud");
+		me.classList.add("invalid");
 		return;
 	}
 
-	const attr = me.id;
-	this._attributes.color()[attr] = val;
-
+	this._attributes.colorRGBComponent(me.id, val);
 	this._attributesHaveChanged();
 };
 

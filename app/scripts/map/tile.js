@@ -250,6 +250,19 @@ TileAttributes.prototype.color = function(newColor)
 
 /**
  *
+ * @param {string} component
+ * @param {number} value
+ * @returns {TileAttributes}
+ */
+TileAttributes.prototype.colorRGBComponent = function(component, value)
+{
+	this._color[component] = value;
+	this._regenerateHashKey();
+	return this;
+};
+
+/**
+ *
  * @returns {string}
  */
 TileAttributes.prototype.hashKey = function()
