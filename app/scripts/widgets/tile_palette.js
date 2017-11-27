@@ -63,8 +63,7 @@ export default function TilePalette()
 	 * @private
 	 */
 	this._colorInput = [
-		document.createElement("input"),
-		document.createElement("input"),
+		document.createElement("input"), document.createElement("input"),
 		document.createElement("input")
 	];
 
@@ -277,9 +276,24 @@ TilePalette.prototype._deformInputChange = function(evt)
  */
 TilePalette.prototype._colorInputChange = function(evt)
 {
+	const me = evt.target;
+	const val = me.value;
 
+	if (val >= 0 && val <= 1)
+	{
+		me.classList.remove("invalid");
+	}
+	else
+	{
+		me.classList.add("invalud");
+		return;
+	}
+
+	const attr = me.id;
+	this._attributes.color()[attr] = val;
+
+	this._attributesHaveChanged();
 };
-
 
 TilePalette.prototype._attributesHaveChanged = function()
 {
