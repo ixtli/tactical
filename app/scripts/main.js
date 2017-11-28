@@ -1,21 +1,21 @@
 /**
-Tactical RPG Engine and Editor Suite in HTML5/ES6/WebGL using Three.js
-Copyright (C) 2017 Christopher Galardi
+ Tactical RPG Engine and Editor Suite in HTML5/ES6/WebGL using Three.js
+ Copyright (C) 2017 Christopher Galardi
 
-This program is free software: you can redistribute it and/or modify it under
-the terms of the GNU Affero General Public License as published by the Free
-Software Foundation, either version 3 of the License, or (at your option) any
-later version.
+ This program is free software: you can redistribute it and/or modify it under
+ the terms of the GNU Affero General Public License as published by the Free
+ Software Foundation, either version 3 of the License, or (at your option) any
+ later version.
 
-This program is distributed in the hope that it will be useful, but WITHOUT ANY
-WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+ This program is distributed in the hope that it will be useful, but WITHOUT ANY
+ WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
 
-You should have received a copy of the GNU Affero General Public License along
-with this program. If not, see http://www.gnu.org/licenses/ .
+ You should have received a copy of the GNU Affero General Public License along
+ with this program. If not, see http://www.gnu.org/licenses/ .
 
  You can contact Christopher Galardi at christophergalardi@gmail.com
-*/
+ */
 
 import Engine from "./engine";
 import InputController from "./input";
@@ -25,6 +25,8 @@ import HUD from "./hud"; // jshint ignore:line
 import {subscribe} from "./bus";
 import generateFSM, {START} from "./state_machine";
 import Chunk from "./map/chunk";
+// noinspection JSFileReferences
+import VersionInfo from "./build_info";
 
 /**
  *
@@ -57,7 +59,8 @@ export const EDITOR_UI = Symbol("EDITOR_UI");
  */
 export default function TacticalEngine(container)
 {
-	console.info("Tactical Engine.");
+	console.info("Tactical Engine");
+	console.info(VersionInfo);
 
 	/**
 	 * @type {Element}
@@ -121,7 +124,7 @@ export default function TacticalEngine(container)
 			enter: this._enterEditorState,
 			leave: this._leaveEditorState,
 			from: new Set([INIT, GAME, EDITOR_UI]),
-			to: new Set([GAME, EDITOR_UI]),
+			to: new Set([GAME, EDITOR_UI])
 		}, [EDITOR_UI]: {
 			enter: this._enterEditorUIState,
 			leave: this._leaveEditorUIState,
@@ -141,20 +144,14 @@ export default function TacticalEngine(container)
 	 * @type {Function}
 	 */
 	Object.defineProperty(this, "changeState", {
-		enumerable: false,
-		configurable: false,
-		writable: false,
-		value: mutate
+		enumerable: false, configurable: false, writable: false, value: mutate
 	});
 
 	/**
 	 * @type {Function}
 	 */
 	Object.defineProperty(this, "getState", {
-		enumerable: false,
-		configurable: false,
-		writable: false,
-		value: getter
+		enumerable: false, configurable: false, writable: false, value: getter
 	});
 }
 
@@ -213,7 +210,7 @@ TacticalEngine.prototype._leaveEditorState = function()
  */
 TacticalEngine.prototype._enterEditorState = function()
 {
-	this._currentTerrain = new Chunk(64,16,64);
+	this._currentTerrain = new Chunk(64, 16, 64);
 	this._currentTerrain.init();
 	//this._currentTerrain.randomGround(25);
 	this._currentTerrain.getMesh().regenerate();
@@ -234,7 +231,7 @@ TacticalEngine.prototype._enterEditorState = function()
  */
 TacticalEngine.prototype._controlKey = function(event)
 {
-	switch(event.key)
+	switch (event.key)
 	{
 		case "1":
 			this.changeState(GAME);
