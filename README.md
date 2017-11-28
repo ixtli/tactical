@@ -1,7 +1,7 @@
 # tactical
 A Tactical RPG Engine. This requires a browser that supports ES6 modules natively.
 
-![Build Status](https://travis-ci.org/ixtli/tactical.svg?branch=master)
+[![Build Status](https://travis-ci.org/ixtli/tactical.svg?branch=master)](https://travis-ci.org/ixtli/tactical)
 
 ```
 npm install -g gulp
