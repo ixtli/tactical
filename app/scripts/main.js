@@ -29,6 +29,11 @@ import Chunk from "./map/chunk";
 import VersionInfo from "./build_info";
 
 /**
+ * @typedef {{buildID: string, buildNumber: string, branch: string, tag:
+ *  string, hash: string, now: string }} VersionInfo
+ */
+
+/**
  *
  * @type {Symbol}
  */
@@ -59,9 +64,6 @@ export const EDITOR_UI = Symbol("EDITOR_UI");
  */
 export default function TacticalEngine(container)
 {
-	console.info("Tactical Engine");
-	console.info(VersionInfo);
-
 	/**
 	 * @type {Element}
 	 */
@@ -161,6 +163,8 @@ export default function TacticalEngine(container)
  */
 TacticalEngine.prototype._enterInitState = function()
 {
+	this.emitStyledBuildInfo();
+
 	this.container.classList.add("tac-wrapper");
 
 	this.engine.init();
@@ -214,7 +218,7 @@ TacticalEngine.prototype._enterEditorState = function()
 	this._currentTerrain.init();
 	//this._currentTerrain.randomGround(25);
 	this._currentTerrain.getMesh().regenerate();
-	this._currentHUD = new EditorHUD(this.container);
+	this._currentHUD = new EditorHUD(this.container, this.getVersionInfo());
 	this._currentHUD.init();
 
 	this._selectionManager = new SelectionManager(this.engine);
@@ -243,3 +247,31 @@ TacticalEngine.prototype._controlKey = function(event)
 			break;
 	}
 };
+
+/**
+ * @returns {VersionInfo}
+ */
+TacticalEngine.prototype.getVersionInfo = function()
+{
+	return VersionInfo;
+};
+
+TacticalEngine.prototype.emitStyledBuildInfo = function()
+{
+	const info = this.getVersionInfo();
+	const hash = info.hash.slice(0, 7);
+	const date = new Date(info.now);
+	const style = "background-color: #0055FF; color: #BAFFEF;" +
+		"border-radius: 1px;text-shadow: 1px 1px 2px #000000;";
+	const hashStyle = "background-color: #0055FF; color: #FFF2B3;" +
+		"border-radius: 1px";
+	const dateStyle = "background-color: #0055FF; color: #FFF2B3;" +
+		"border-radius: 1px";
+	console.log(`%cTactical Engine [ Build %c${hash} %c@ %c${date} %c]`,
+		style,
+		hashStyle,
+		style,
+		dateStyle,
+		style);
+};
+

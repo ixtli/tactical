@@ -9,9 +9,10 @@ import WidgetSet from "./widgets/widget_set";
 /**
  *
  * @param {Element} container
+ * @param {VersionInfo} version
  * @constructor
  */
-export default function EditorHUD(container)
+export default function EditorHUD(container, version)
 {
 	HUD.call(this, container);
 
@@ -20,7 +21,7 @@ export default function EditorHUD(container)
 	 * @type {StatusLine}
 	 * @private
 	 */
-	this._statusLine = new StatusLine();
+	this._statusLine = new StatusLine(version);
 }
 
 EditorHUD.prototype = Object.create(HUD.prototype);

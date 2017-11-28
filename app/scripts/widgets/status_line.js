@@ -20,11 +20,25 @@ const SELECTION_STATE = {
 
 /**
  *
+ * @param {VersionInfo} version
  * @constructor
  */
-export default function StatusLine()
+export default function StatusLine(version)
 {
 	WidgetBase.call(this);
+
+	/**
+	 * @type {VersionInfo}
+	 * @private
+	 */
+	this._version = version;
+
+	/**
+	 *
+	 * @type {Element}
+	 * @private
+	 */
+	this._versionDisplay = document.createElement("h1");
 
 	/**
 	 *
@@ -86,6 +100,16 @@ StatusLine.prototype.init = function()
 	symbol.innerHTML = "📦";
 	symbol.id = "logo";
 	this._container.appendChild(symbol);
+
+	this._versionDisplay.id = "version-display";
+	if (this._version.buildID === "local")
+	{
+		this._versionDisplay.innerHTML = "local";
+		this._versionDisplay.classList.add("local");
+	} else {
+		this._versionDisplay.innerHTML = this._version.hash.slice(0,7);
+	}
+	this._container.appendChild(this._versionDisplay);
 
 	this._engineMode.id = "engine-mode";
 	this._addPathComponent(this._engineMode);

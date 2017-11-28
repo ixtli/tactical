@@ -117,6 +117,17 @@ body {
 		width: 32px;
 	}
 
+	h1#version-display {
+		color: #06c034;
+		margin-right: 5px;
+		font-weight: 100;
+	}
+
+	h1#version-display.local {
+		color: red;
+	}
+
+
 	h1, h2 {
 		-webkit-text-stroke: unset;
 		color: white;
