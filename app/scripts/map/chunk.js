@@ -1,4 +1,3 @@
-import * as THREE from "../../../bower_components/three.js/build/three.module";
 import ChunkMesh, {
 	MAX_CHUNK_DEPTH, MAX_CHUNK_HEIGHT, MAX_CHUNK_WIDTH
 } from "./chunk_mesh";

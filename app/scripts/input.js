@@ -1,5 +1,4 @@
 import Engine from "./engine"; // jshint ignore:line
-import * as THREE from "../../bower_components/three.js/build/three.module";
 import {emit} from "./bus";
 
 /**

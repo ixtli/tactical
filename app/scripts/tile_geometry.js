@@ -1,5 +1,3 @@
-import * as THREE from "../../bower_components/three.js/build/three.module";
-
 export const TILE_WIDTH = 1;
 export const TILE_HEIGHT = 1;
 export const TILE_DEPTH = 1;

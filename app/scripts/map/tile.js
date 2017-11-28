@@ -1,4 +1,3 @@
-import * as THREE from "../../../bower_components/three.js/build/three.module";
 import TileBufferGeometry, {TILE_HEIGHT} from "../tile_geometry";
 
 const DEFAULT_COLOR = new THREE.Color().setHSL(0.3, 0.75, 0.5);

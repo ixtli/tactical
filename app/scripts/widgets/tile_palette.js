@@ -1,4 +1,3 @@
-import * as THREE from "../../../bower_components/three.js/build/three.module";
 import WidgetBase from "./base_widget";
 import Tile, {TileAttributes} from "../map/tile"; // jshint ignore:line
 import Chunk from "../map/chunk"; // jshint ignore:line

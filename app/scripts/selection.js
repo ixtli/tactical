@@ -1,4 +1,3 @@
-import * as THREE from "../../bower_components/three.js/build/three.module";
 import Engine, {EAST, NORTH, SOUTH, WEST} from "./engine"; // jshint ignore:line
 import {emit, subscribe, unsubscribe} from "./bus";
 import generateFSM, {START} from "./state_machine";
@@ -298,9 +297,9 @@ export default function SelectionManager(graphicsEngine)
 SelectionManager.prototype.init = function()
 {
 	// These boxes are the closest we come to the real problem of transparent
-	// geometry intersection. The general idea is that, because they will overlap
-	// dynamically, they should never be the same size, and the selection volume
-	// should always render first.
+	// geometry intersection. The general idea is that, because they will
+	// overlap dynamically, they should never be the same size, and the
+	// selection volume should always render first.
 	this._highlightBox.scale.add(this._offset);
 	this._primarySelectionBox.scale.add(this._offset);
 	this._secondarySelectionBox.scale.add(this._offset);

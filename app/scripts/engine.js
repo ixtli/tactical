@@ -1,4 +1,3 @@
-import * as THREE from "../../bower_components/three.js/build/three.module";
 import generateDebounce from "./debounce";
 import {TILE_HEIGHT, TILE_WIDTH} from "./tile_geometry";
 import TWEEN from "./Tween";
@@ -275,10 +274,10 @@ export default function Engine(container, options)
 
 	/**
 	 *
-	 * @type {AxisHelper}
+	 * @type {AxesHelper}
 	 * @private
 	 */
-	this._axisHelper = new THREE.AxisHelper(10);
+	this._axesHelper = new THREE.AxesHelper(10);
 }
 
 Engine.prototype.init = function()
@@ -366,7 +365,7 @@ Engine.prototype._updateCameraFrustum = function()
  */
 Engine.prototype.setAxisHelperVisible = function(visible)
 {
-	this._axisHelper.visible = visible;
+	this._axesHelper.visible = visible;
 	emit("engine.axishelper.visibility", [visible]);
 };
 
@@ -388,7 +387,7 @@ Engine.prototype._setupScene = function()
 	light.position.set(0, 500, 2000);
 	this._scene.add(light);
 
-	this._scene.add(this._axisHelper);
+	this._scene.add(this._axesHelper);
 	this.setAxisHelperVisible(true);
 
 	// Rotate so it "lays flat" on the x,z plane and so that the top face
