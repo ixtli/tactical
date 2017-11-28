@@ -1,23 +1,22 @@
 language: node_js
 node_js:
-  - "9"
-
+- '9'
 before_script:
-  - "npm install -g gulp-cli"
-  - "npm install -g bower"
-  - "bower install"
-
+- npm install -g gulp-cli
+- npm install -g bower
+- bower install
 cache:
   directories:
-    - "node_modules"
-    - "bower_components"
-
+  - node_modules
+  - bower_components
 script: gulp
-
 deploy:
   provider: pages
   skip_cleanup: true
   local_dir: dist
-  github_token: $GITHUB_TOKEN
+  github_token: "$GITHUB_TOKEN"
   on:
     branch: master
+notifications:
+  slack:
+    secure: AriQ5eoD8YGKXdVoL5UCExivp6K19rMzNBulqZJ2t2f5VUQ/rc3X1C4DT8wGoiD6XOMGnnFTHYOVmimZsDNYbpJ6vTez6Lwr4iVssiNnR8WEvybnCKAj5fRxpLxsfdj+mytzmJ1PxNxez1MVhcAT9ypposyecC0T4UErsnwmX9YIRAWYFLDcvHgdG60ughUjWOUna/5izqLyv4FWVu2ev/HMSyME+AXFYV2go2GdzQhXmxaYGOJdKvfBU4w5ZOZz75tvbCkCjNmBrPHZ/YL51FjXru9wMibStmqbL8mptoArfbds0Z5EsVeClEBEI9jbO38SoHIb3IsbgiBLaJDV1Cv9ZE6mig/r8sUePNYrGOUjGPA25iyjMQI42zzbnlbpOx24qxl8YvkHuG7E5QnvC5LtPq/LlK0UKNmdEdo0n93SQ/pAHSzRLhwpXUlCLfH+9xKN8muPY9DQqAv2+Q3cfVPutCTlgPdGWGcwW/xBBnkjX6QlQ+oxe9hNr3zyPElct00xPr7ji4CXSRDUOBQI68YeIAvZANNH8XHmmDapBUn2kWYb7rGyC28p0WpSI+4KX4RzayfFc98TA58tR0AkiQXiN8NBOis3yAof2w9HYbWh/OJwNboCGSr5YDRvKVmFeYgxe7JlhennsNDgz7IjeFzbrAKgNbdb9QMI7feGHlA=
