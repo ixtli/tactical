@@ -26,7 +26,8 @@ const versionInfo = {
 	buildNumber: process.env.TRAVIS_BUILD_NUMBER || "local",
 	branch: process.env.TRAVIS_BRANCH || "local",
 	tag: process.env.TRAVIS_TAG || "local",
-	hash: revision
+	hash: revision,
+	now: new Date()
 };
 
 gulp.task("styles", () =>
