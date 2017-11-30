@@ -4,6 +4,7 @@ const DEFAULT_COLOR = new THREE.Color().setHSL(0.3, 0.75, 0.5);
 
 const box = new TileBufferGeometry();
 const DEFAULT_VERTS = box.attributes.position.array;
+const DEFAULT_UVS = box.attributes.uv.array;
 
 /**
  *
@@ -322,6 +323,13 @@ export default function Tile(name)
 	 * @type {BufferAttribute}
 	 * @private
 	 */
+	this._uvs = new THREE.Float32BufferAttribute(DEFAULT_UVS, 2);
+
+	/**
+	 *
+	 * @type {BufferAttribute}
+	 * @private
+	 */
 	this._color =
 		new THREE.BufferAttribute(new Float32Array(this._position.array.length), 3);
 
@@ -342,6 +350,7 @@ Tile.prototype.init = function(attributes)
 {
 	this._geometry.addAttribute("position", this._position);
 	this._geometry.addAttribute("color", this._color);
+	this._geometry.addAttribute("uv", this._uvs);
 	this._geometry.setIndex(box.index);
 
 	if (attributes)
@@ -505,6 +514,15 @@ Tile.prototype.name = function(newValue)
 Tile.prototype.getPositionArray = function()
 {
 	return this._position.array;
+};
+
+/**
+ *
+ * @returns {Float32Array}
+ */
+Tile.prototype.getUVArray = function()
+{
+	return this._uvs.array;
 };
 
 /**

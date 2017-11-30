@@ -78,6 +78,17 @@ export default function TilePalette()
 
 	/**
 	 *
+	 * @type {Array.<Element>}
+	 * @private
+	 */
+	this._faceTexture = [
+		document.createElement("img"), document.createElement("img"),
+		document.createElement("img"), document.createElement("img"),
+		document.createElement("img")
+	];
+
+	/**
+	 *
 	 * @type {Element}
 	 * @private
 	 */
@@ -165,6 +176,12 @@ TilePalette.prototype._initializeDOM = function()
 	this._deformInput[2].id = "np";
 	this._deformInput[3].id = "nn";
 
+	this._faceTexture[0].id = "px";
+	this._faceTexture[1].id = "nx";
+	this._faceTexture[2].id = "py";
+	this._faceTexture[3].id = "pz";
+	this._faceTexture[4].id = "nz";
+
 	const cb = document.createElement("input");
 	cb.id = "met";
 	cb.type = "checkbox";
@@ -201,6 +218,16 @@ TilePalette.prototype._initializeDOM = function()
 		di.addEventListener("input", fxn);
 		this._container.appendChild(di);
 	}
+
+	const wrapper = document.createElement("div");
+	wrapper.classList.add("grid-wrapper");
+
+	for (let face of this._faceTexture)
+	{
+		wrapper.appendChild(face);
+	}
+
+	this._container.appendChild(wrapper);
 
 	this._container.appendChild(this._checkBoxContainer);
 	this._container.classList.add("tile-palette");

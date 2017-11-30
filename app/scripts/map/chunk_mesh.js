@@ -1,6 +1,5 @@
 import Chunk from "./chunk"; // jshint ignore:line
-import {TILE_HEIGHT, TILE_WIDTH} from "../tile_geometry";
-import TileBufferGeometry from "../tile_geometry";
+import TileBufferGeometry, {TILE_HEIGHT, TILE_WIDTH} from "../tile_geometry";
 
 export const MAX_CHUNK_WIDTH = 64;
 export const MAX_CHUNK_DEPTH = 64;
@@ -11,6 +10,7 @@ const MAX_TILES = MAX_CHUNK_WIDTH * MAX_CHUNK_HEIGHT * MAX_CHUNK_DEPTH;
 const box = new TileBufferGeometry();
 const VERT_COUNT = box.attributes.position.array.length;
 const INDEX_COUNT = box.index.array.length;
+const UV_COUNT = box.attributes.uv.array.length;
 const indexArray = new Uint32Array(MAX_TILES * INDEX_COUNT);
 const indexBuffer = new THREE.BufferAttribute(indexArray, 1);
 
@@ -73,6 +73,13 @@ export default function ChunkMesh(mapData)
 	 * @type {BufferAttribute}
 	 * @private
 	 */
+	this._uvBuffer = new THREE.BufferAttribute(new Float32Array(0), 2);
+
+	/**
+	 *
+	 * @type {BufferAttribute}
+	 * @private
+	 */
 	this._pickColorBuffer = new THREE.BufferAttribute(new Float32Array(0), 3);
 
 	/**
@@ -87,6 +94,7 @@ ChunkMesh.prototype.init = function()
 {
 	this._geometry.addAttribute("position", this._positionBuffer);
 	this._geometry.addAttribute("color", this._colorBuffer);
+	this._geometry.addAttribute("uv", this._uvBuffer);
 	this._pickingGeometry.addAttribute("position", this._positionBuffer);
 	this._pickingGeometry.addAttribute("color", this._pickColorBuffer);
 	this._geometry.setIndex(indexBuffer);
@@ -119,10 +127,12 @@ ChunkMesh.prototype._resizeBuffers = function(tileCount)
 {
 	const oldVertexCount = this._geometry.attributes.position.array.length;
 	const vertexCount = VERT_COUNT * tileCount;
+	const uvCount = UV_COUNT * tileCount;
 
 	if (oldVertexCount < vertexCount)
 	{
 		const buffer = Math.min(MAX_TILES, tileCount * 2);
+		const bufferUVCount = buffer * UV_COUNT;
 		const bufferVertexCount = buffer * VERT_COUNT;
 		console.log(`Allocating ${buffer} tiles. (${bufferVertexCount} verts, ` +
 			(buffer * VERT_COUNT * 4 * 3) / 1000000 + "mb)");
@@ -130,15 +140,18 @@ ChunkMesh.prototype._resizeBuffers = function(tileCount)
 		this._positionBuffer.setArray(new Float32Array(bufferVertexCount));
 		this._colorBuffer.setArray(new Float32Array(bufferVertexCount));
 		this._pickColorBuffer.setArray(new Float32Array(bufferVertexCount));
+		this._uvBuffer.setArray(new Float32Array(bufferUVCount));
 	}
 
 	this._positionBuffer.updateRange.count = vertexCount;
 	this._colorBuffer.updateRange.count = vertexCount;
 	this._pickColorBuffer.updateRange.count = vertexCount;
+	this._uvBuffer.updateRange.count = uvCount;
 
 	this._positionBuffer.needsUpdate = true;
 	this._pickColorBuffer.needsUpdate = true;
 	this._colorBuffer.needsUpdate = true;
+	this._uvBuffer.needsUpdate = true;
 };
 
 ChunkMesh.prototype.regenerate = function()
@@ -156,6 +169,7 @@ ChunkMesh.prototype.regenerate = function()
 	const positionArray = this._positionBuffer.array;
 	const colorArray = this._colorBuffer.array;
 	const pickArray = this._pickColorBuffer.array;
+	const uvArray = this._uvBuffer.array;
 
 	const pickColor = new THREE.Color();
 
@@ -216,6 +230,7 @@ ChunkMesh.prototype.regenerate = function()
 					pickArray[start + i + 2] = pickColor.b;
 				}
 
+				uvArray.set(tile.getUVArray(), start);
 				colorArray.set(tile.getColorArray(), start);
 
 				generated++;
